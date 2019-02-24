@@ -32,8 +32,8 @@ class Motor():
         self.PWM.start(0)  # Init the PWM with a 0 percent duty cycle (off)
 
         self.forward = True  # Remember which direction it was travelling
-        self.target_speed = 0  # User defined speed in range [-100.0, 100.0]
-        self.current_speed = 0  # Actual motor speed in range [-100.0, 100.0]
+        self.target_speed = 0.0  # User defined speed in range [-100.0, 100.0]
+        self.current_speed = 0.0  # Actual motor speed in range [-100.0, 100.0]
         self.speed_factor = 1.0  # Factor applied to speed in range [0.0, 1.0]
         self.max_speed = 90.0  # Speed limit
 
@@ -67,8 +67,13 @@ class Motor():
 
     def set_motor_speed(self, speed=0.0):
         """ Change a motors speed.
-            Method expects a value in the range of [-100.0, 100.0]
-        """
+            Method expects a value in the range of [-100.0, 100.0] """
+        self.target_speed = speed
+
+    def change_motor_speed(self, speed=0.0):
+        """ Called from this class's RUN loop
+            to change actual speed to target speed. """
+        self.current_speed = speed  # Store current set speed
 
         # If speed is < 0.0, we are driving in reverse.
         if speed < 0.0:
@@ -108,9 +113,10 @@ class Motor():
         self.running = True  # Flag set to TRUE, runs until its turned off.
 
         while self.running:
-            # Does nothing at the moment. 
+            # Does nothing at the moment.
             # Future improvement to cope with acceleration.
-            pass
+            if self.current_speed != self.target_speed:
+                self.change_motor_speed(self.target_speed)
 
         # If thread terminated, ensure motors are OFF
         self.set_neutral(braked=True)
