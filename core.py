@@ -3,6 +3,7 @@ import time
 # import i2c_lidar
 from enum import Enum
 import VL53L0X
+import motor
 
 MOTOR_LEFT_PWM = 17
 MOTOR_LEFT_A = 22
@@ -17,11 +18,6 @@ MOTOR_TURRET_SERVO = 6
 MOTOR_GUN_PWM = 12
 MOTOR_GUN_A = 5
 MOTOR_GUN_B = 25
-
-#MOTOR_LEFT_ENA = 36
-#MOTOR_LEFT_ENB = 37
-#MOTOR_RIGHT_ENA = 38
-#MOTOR_RIGHT_ENB = 40
 
 MAX_SPEED = 90
 
@@ -51,18 +47,6 @@ class Core():
         self.GPIO = GPIO
         self.DEBUG = False
 
-        # Configure GPIO pins to detect motor controller errors
-        #GPIO.setup(MOTOR_LEFT_ENA, GPIO.IN)
-        #GPIO.setup(MOTOR_LEFT_ENB, GPIO.IN)
-        #GPIO.setup(MOTOR_RIGHT_ENA, GPIO.IN)
-        #GPIO.setup(MOTOR_RIGHT_ENB, GPIO.IN)
-
-        # Add the event callback detection for when the motors trip out.
-        #GPIO.add_event_detect(MOTOR_LEFT_ENA, GPIO.FALLING, self.event_callback)
-        #GPIO.add_event_detect(MOTOR_LEFT_ENB, GPIO.FALLING, self.event_callback)
-        #GPIO.add_event_detect(MOTOR_RIGHT_ENA, GPIO.FALLING, self.event_callback)
-        #GPIO.add_event_detect(MOTOR_RIGHT_ENB, GPIO.FALLING, self.event_callback)
-
         self.GPIO.setup(MOTOR_GUN_SERVO, GPIO.OUT)
         self.gun_servo = self.GPIO.PWM(MOTOR_GUN_SERVO, 100)  # pin 33
         duty = float(175.0) / 10.0 + 2.5
@@ -73,30 +57,28 @@ class Core():
         self.turret_min = 15.0
         self.turret_current = self.turret_min
         self.GPIO.setup(MOTOR_TURRET_SERVO, GPIO.OUT)
-        #self.turret_servo = self.GPIO.PWM(MOTOR_TURRET_SERVO, 100)  # pin 33
         duty = float(self.turret_min) / 10.0 + 2.5
-        #self.turret_servo.start(duty)
 
         # Configure motor pins with GPIO
         self.motor = dict()
-        self.motor['left'] = self.setup_motor(
-            MOTOR_LEFT_PWM,
+        self.motor['left'] = motor.Motor(
+            GPIO,
             MOTOR_LEFT_A,
-            MOTOR_LEFT_B
+            MOTOR_LEFT_B,
+            MOTOR_LEFT_PWM
         )
-        self.motor['right'] = self.setup_motor(
-            MOTOR_RIGHT_PWM,
+        self.motor['right'] = motor.Motor(
+            GPIO,
             MOTOR_RIGHT_A,
-            MOTOR_RIGHT_B
+            MOTOR_RIGHT_B,
+            MOTOR_RIGHT_PWM
         )
+
         self.motor['gun'] = self.setup_motor(
             MOTOR_GUN_PWM,
             MOTOR_GUN_A,
             MOTOR_GUN_B
         )
-
-        # Speed Multiplier 1.0 == max
-        self.speed_factor = 0.4 # start off in safe-ish mode
 
         # Create a list of I2C time of flight lidar sensors
         # Note: we need to dynamically alter each
@@ -160,28 +142,15 @@ class Core():
                 print("{}mm".format(distance_front))
                 print('######')
 
-
     def increase_speed_factor(self):
-        self.speed_factor += 0.1
-        # Clamp speed factor to [0.1, 1.0]
-        if self.speed_factor > 1.0:
-            self.speed_factor = 1.0
-        elif self.speed_factor < 0.1:
-            self.speed_factor = 0.1
-        print ("New speed factor %0.1f" % (self.speed_factor) )
+        self.motor['left'].increase_speed_factor()
 
     def decrease_speed_factor(self):
-        self.speed_factor -= 0.1
-        # Clamp speed factor to [0.1, 1.0]
-        if self.speed_factor > 1.0:
-            self.speed_factor = 1.0
-        elif self.speed_factor < 0.1:
-            self.speed_factor = 0.1
-        print ("New speed factor %0.1f" % (self.speed_factor) )
+        self.motor['left'].decrease_speed_factor()
 
     def cleanup(self):
-        self.motor['left'].stop()  # stop the PWM output
-        self.motor['right'].stop()  # stop the PWM output
+        self.motor['left'].cleanup()  # stop the PWM output
+        self.motor['right'].cleanup()  # stop the PWM output
         self.motor['gun'].stop()  # stop the PWM output
 
         # Turn off i2c lidar tof sensors
@@ -366,24 +335,8 @@ class Core():
     ):
         """ Send motors speed value in range [-100.0,100.0]
             where 0 = neutral """
-        if self.ena_pins:
-            print(
-                self.GPIO.input(MOTOR_LEFT_ENA),
-                self.GPIO.input(MOTOR_LEFT_ENB)
-            )
-        if self.motors_enabled:  # Ignore speed change if disabled.
-            self.set_motor_speed(
-                self.motor['left'],
-                MOTOR_LEFT_A,
-                MOTOR_LEFT_B,
-                speed=left_speed
-            )
-            self.set_motor_speed(
-                self.motor['right'],
-                MOTOR_RIGHT_A,
-                MOTOR_RIGHT_B,
-                speed=right_speed
-            )
+        self.motor['left'].set_motor_speed(left_speed)
+        self.motor['right'].set_motor_speed(right_speed)
 
 
 def main():

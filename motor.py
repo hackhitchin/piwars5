@@ -8,7 +8,8 @@ class Motor():
         b_pin,
         pwm_pin,
         enabled=False,
-        pwm_frequency=1000
+        pwm_frequency=1000,
+        speed_factor=0.4
     ):
         """ Constructor """
         self.running = False
@@ -34,12 +35,31 @@ class Motor():
         self.forward = True  # Remember which direction it was travelling
         self.target_speed = 0.0  # User defined speed in range [-100.0, 100.0]
         self.current_speed = 0.0  # Actual motor speed in range [-100.0, 100.0]
-        self.speed_factor = 1.0  # Factor applied to speed in range [0.0, 1.0]
+        self.speed_factor = speed_factor  # speed multiplier, range [0.0, 1.0]
         self.max_speed = 90.0  # Speed limit
 
     def cleanup(self):
         """ Perform all necessary tasks to destruct this class. """
         self.PWM.stop()  # stop the PWM output
+
+    def increase_speed_factor(self):
+        self.speed_factor += 0.1
+        # Clamp speed factor to [0.1, 1.0]
+        if self.speed_factor > 1.0:
+            self.speed_factor = 1.0
+        elif self.speed_factor < 0.1:
+            self.speed_factor = 0.1
+        print ("New speed factor %0.1f" % (self.speed_factor) )
+
+    def decrease_speed_factor(self):
+        self.speed_factor -= 0.1
+        # Clamp speed factor to [0.1, 1.0]
+        if self.speed_factor > 1.0:
+            self.speed_factor = 1.0
+        elif self.speed_factor < 0.1:
+            self.speed_factor = 0.1
+        print ("New speed factor %0.1f" % (self.speed_factor) )
+
 
     def set_neutral(self, braked=False):
         """ Send neutral to the motor IMEDIATELY. """
