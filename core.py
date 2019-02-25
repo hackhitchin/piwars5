@@ -4,22 +4,29 @@ import time
 from enum import Enum
 import VL53L0X
 import motor
+import threading
 
 MOTOR_LEFT_PWM = 17
-MOTOR_LEFT_A = 22
-MOTOR_LEFT_B = 27
+MOTOR_LEFT_A = 27
+MOTOR_LEFT_B = 22
 
 MOTOR_RIGHT_PWM = 18
-MOTOR_RIGHT_A = 23
-MOTOR_RIGHT_B = 24
+MOTOR_RIGHT_A = 24
+MOTOR_RIGHT_B = 23
+
+MOTOR_FRONT_LEFT_PWM = 4
+MOTOR_FRONT_LEFT_A = 19
+MOTOR_FRONT_LEFT_B = 16
+
+MOTOR_FRONT_RIGHT_PWM = 7
+MOTOR_FRONT_RIGHT_A = 1
+MOTOR_FRONT_RIGHT_B = 0
 
 MOTOR_GUN_SERVO = 13
 MOTOR_TURRET_SERVO = 6
 MOTOR_GUN_PWM = 12
 MOTOR_GUN_A = 5
 MOTOR_GUN_B = 25
-
-MAX_SPEED = 90
 
 
 class I2C_Lidar(Enum):
@@ -42,8 +49,6 @@ class Core():
         self.ena_pins = False
 
         # Motors will be disabled by default.
-        self.motors_enabled = False
-        self.gun_enabled = False
         self.GPIO = GPIO
         self.DEBUG = False
 
@@ -65,20 +70,57 @@ class Core():
             GPIO,
             MOTOR_LEFT_A,
             MOTOR_LEFT_B,
-            MOTOR_LEFT_PWM
+            MOTOR_LEFT_PWM,
+            "Left"  # Motor name
         )
         self.motor['right'] = motor.Motor(
             GPIO,
             MOTOR_RIGHT_A,
             MOTOR_RIGHT_B,
-            MOTOR_RIGHT_PWM
+            MOTOR_RIGHT_PWM,
+            "Right"  # Motor name
+        )
+        self.motor['front_left'] = motor.Motor(
+            GPIO,
+            MOTOR_FRONT_LEFT_A,
+            MOTOR_FRONT_LEFT_B,
+            MOTOR_FRONT_LEFT_PWM,
+            "Front Left"  # Motor name
+        )
+        self.motor['front_right'] = motor.Motor(
+            GPIO,
+            MOTOR_FRONT_RIGHT_A,
+            MOTOR_FRONT_RIGHT_B,
+            MOTOR_FRONT_RIGHT_PWM,
+            "Front Right"  # Motor name
         )
 
-        self.motor['gun'] = self.setup_motor(
-            MOTOR_GUN_PWM,
+        self.motor['gun'] = motor.Motor(
+            GPIO,
             MOTOR_GUN_A,
-            MOTOR_GUN_B
+            MOTOR_GUN_B,
+            MOTOR_GUN_PWM,
+            "Gun"  # Motor name
         )
+
+        # Kick off a new thread for each motor
+        self.left_motor_thread = threading.Thread(
+            target=self.motor['left'].run)
+        self.left_motor_thread.start()
+        self.right_motor_thread = threading.Thread(
+            target=self.motor['right'].run)
+        self.right_motor_thread.start()
+
+        self.front_left_motor_thread = threading.Thread(
+            target=self.motor['front_left'].run)
+        self.front_left_motor_thread.start()
+        self.front_right_motor_thread = threading.Thread(
+            target=self.motor['front_right'].run)
+        self.front_right_motor_thread.start()
+
+        self.gun_motor_thread = threading.Thread(
+            target=self.motor['gun'].run)
+        self.gun_motor_thread.start()
 
         # Create a list of I2C time of flight lidar sensors
         # Note: we need to dynamically alter each
@@ -118,7 +160,8 @@ class Core():
             time.sleep(0.5)
 
             try:
-                lidar_dev['device'].start_ranging(VL53L0X.VL53L0X_LONG_RANGE_MODE)
+                lidar_dev['device'].start_ranging(
+                    VL53L0X.VL53L0X_LONG_RANGE_MODE)
             except:
                 pass
 
@@ -144,14 +187,22 @@ class Core():
 
     def increase_speed_factor(self):
         self.motor['left'].increase_speed_factor()
+        self.motor['right'].increase_speed_factor()
+        self.motor['front_left'].increase_speed_factor()
+        self.motor['front_right'].increase_speed_factor()
 
     def decrease_speed_factor(self):
         self.motor['left'].decrease_speed_factor()
+        self.motor['right'].decrease_speed_factor()
+        self.motor['front_left'].decrease_speed_factor()
+        self.motor['front_right'].decrease_speed_factor()
 
     def cleanup(self):
         self.motor['left'].cleanup()  # stop the PWM output
         self.motor['right'].cleanup()  # stop the PWM output
-        self.motor['gun'].stop()  # stop the PWM output
+        self.motor['front_left'].cleanup()  # stop the PWM output
+        self.motor['front_right'].cleanup()  # stop the PWM output
+        self.motor['gun'].cleanup()  # stop the PWM output
 
         # Turn off i2c lidar tof sensors
         print("Turning off I2C TOF sensors")
@@ -185,129 +236,23 @@ class Core():
 
     def set_neutral(self, braked=False):
         """ Send neutral to the motors IMEDIATELY. """
-
-        # Setting MOTOR pins to LOW will make it free wheel.
-        pin_value = 0
-        if braked:
-            pin_value = 1  # Setting to HIGH will do active braking.
-        self.GPIO.output(MOTOR_LEFT_A, pin_value)
-        self.GPIO.output(MOTOR_LEFT_B, pin_value)
-        self.GPIO.output(MOTOR_RIGHT_A, pin_value)
-        self.GPIO.output(MOTOR_RIGHT_B, pin_value)
-
-        # Turn motors off by setting duty cycle back to zero.
-        dutycycle = 0.0
-        self.motor['left'].ChangeDutyCycle(dutycycle)
-        self.motor['right'].ChangeDutyCycle(dutycycle)
+        self.motor['left'].set_neutral(braked)
+        self.motor['right'].set_neutral(braked)
+        self.motor['front_left'].set_neutral(braked)
+        self.motor['front_right'].set_neutral(braked)
 
     def enable_motors(self, enable):
         """ Called when we want to enable/disable the motors.
             When disabled, will ignore any new motor commands. """
-
-        self.motors_enabled = enable
-
-        # Set motors in neutral if disabling.
-        if not enable:
-            self.set_neutral()
-
-    def event_callback(self, channel):
-        """ GPIO Event callback function """
-        # Test the resetting motors boolean variable.
-        # This will veto multiple failures whilst we
-        # are already midst motor reset.
-        if not self.resetting_motors:
-            self.resetting_motors = True  # Enable Veto
-            self.reset_motors()  # Reset motors
-            self.resetting_motors = False  # Disable Veto
-
-    def reset_motors(self):
-        """ Reset BOTH motor inouts (keeping PWM values) """
-        self.reset_motor(
-            self.motor['left'],
-            MOTOR_LEFT_A,
-            MOTOR_LEFT_B
-        )
-        self.reset_motor(
-            self.motor['right'],
-            MOTOR_RIGHT_A,
-            MOTOR_RIGHT_B
-        )
-        print("Reset Motors")
-
-    def reset_motor(self, motor, a, b):
-        """ Reset motor inouts (keeping PWM values) """
-
-        # Read current motor directions
-        in_a = self.GPIO.input(a)
-        in_b = self.GPIO.input(b)
-
-        forward = True
-        if in_a and not in_b:
-            forward = True
-        elif not in_a and in_b:
-            forward = False
-
-        # To Reset, put motor in reverse
-        self.GPIO.output(a, 0)
-        self.GPIO.output(b, 1)
-
-        # Pause a very small time to allow it to reset
-        time.sleep(0.005)
-
-        # Now reset motor directional pins
-        if forward:
-            self.GPIO.output(a, 1)
-            self.GPIO.output(b, 0)
-        else:
-            self.GPIO.output(a, 0)
-            self.GPIO.output(b, 1)
-
-    def set_motor_speed(self, motor, a, b, speed=0.0):
-        """ Change a motors speed.
-
-        Method expects a value in the range of [-100.0, 100.0]
-        """
-        forward = True
-
-        # If speed is < 0.0, we are driving in reverse.
-        if speed < 0.0:
-            speed = -speed
-            forward = False
-
-        speed *= self.speed_factor
-
-        # Set motor directional pins
-        if forward:
-            self.GPIO.output(a, 1)
-            self.GPIO.output(b, 0)
-        else:
-            self.GPIO.output(a, 0)
-            self.GPIO.output(b, 1)
-
-        # Convert speed into PWM duty cycle
-        # and clamp values to min/max ranges.
-        dutycycle = speed
-        if dutycycle < 0.0:
-            dutycycle = 0.0
-        elif dutycycle > MAX_SPEED:
-            dutycycle = MAX_SPEED
-
-        print(dutycycle)
-
-        # Change the PWM duty cycle based on fabs() of speed value.
-        motor.ChangeDutyCycle(dutycycle)
+        self.motor['left'].enable_motor(enable)
+        self.motor['right'].enable_motor(enable)
+        self.motor['front_left'].enable_motor(enable)
+        self.motor['front_right'].enable_motor(enable)
 
     def enable_gun(self, enable):
-        speed = 0
-        if enable:
-            speed = -50
-        self.set_motor_speed(
-            self.motor['gun'],
-            MOTOR_GUN_A,
-            MOTOR_GUN_B,
-            speed=speed
-        )
-        self.gun_enabled = enable
+        speed = -50
+        self.motor['gun'].enable_motor(enable)
+        self.motor['gun'].set_motor_speed(speed)
 
     def fire_gun(self, angle):
         duty = float(angle) / 10.0 + 2.5
@@ -337,6 +282,8 @@ class Core():
             where 0 = neutral """
         self.motor['left'].set_motor_speed(left_speed)
         self.motor['right'].set_motor_speed(right_speed)
+        self.motor['front_left'].set_motor_speed(left_speed)
+        self.motor['front_right'].set_motor_speed(right_speed)
 
 
 def main():

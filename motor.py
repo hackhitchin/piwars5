@@ -1,17 +1,27 @@
+import logging
+import time
+import sys
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+
 class Motor():
     """ Instantiate a single motor module. """
 
     def __init__(
         self,
         GPIO,
-        a_pin,
-        b_pin,
+        a_pin,  # -1 if not used
+        b_pin,  # -1 if not used
         pwm_pin,
+        motor_name,
         enabled=False,
         pwm_frequency=1000,
-        speed_factor=0.4
+        speed_factor=1.0
     ):
         """ Constructor """
+        self.GPIO = GPIO
+        self.motor_name = motor_name
         self.running = False
         self.a_pin = a_pin
         self.b_pin = b_pin
@@ -21,12 +31,16 @@ class Motor():
 
         # Setup the GPIO pins as OUTPUTS
         self.GPIO.setup(pwm_pin, self.GPIO.OUT)
-        self.GPIO.setup(a_pin, self.GPIO.OUT)
-        self.GPIO.setup(b_pin, self.GPIO.OUT)
+        if self.a_pin >= 0:
+            self.GPIO.setup(a_pin, self.GPIO.OUT)
+        if self.b_pin >= 0:
+            self.GPIO.setup(b_pin, self.GPIO.OUT)
 
         # Initialise a and b pins to zero (neutral)
-        self.GPIO.output(a_pin, 0)
-        self.GPIO.output(b_pin, 0)
+        if self.a_pin >= 0:
+            self.GPIO.output(a_pin, 0)
+        if self.b_pin >= 0:
+            self.GPIO.output(b_pin, 0)
 
         # create object D2A for PWM
         self.PWM = self.GPIO.PWM(pwm_pin, pwm_frequency)
@@ -49,7 +63,7 @@ class Motor():
             self.speed_factor = 1.0
         elif self.speed_factor < 0.1:
             self.speed_factor = 0.1
-        print ("New speed factor %0.1f" % (self.speed_factor) )
+        print ("New speed factor %0.1f" % (self.speed_factor))
 
     def decrease_speed_factor(self):
         self.speed_factor -= 0.1
@@ -58,23 +72,24 @@ class Motor():
             self.speed_factor = 1.0
         elif self.speed_factor < 0.1:
             self.speed_factor = 0.1
-        print ("New speed factor %0.1f" % (self.speed_factor) )
-
+        print ("New speed factor %0.1f" % (self.speed_factor))
 
     def set_neutral(self, braked=False):
         """ Send neutral to the motor IMEDIATELY. """
-
         # Setting MOTOR pins to LOW will make it free wheel.
         pin_value = 0
         if braked:
             pin_value = 1  # Setting to HIGH will do active braking.
 
         # Set a and b pins to either 1 or 0.
-        self.GPIO.output(self.a_pin, pin_value)
-        self.GPIO.output(self.b_pin, pin_value)
+        if self.a_pin >= 0:
+            self.GPIO.output(self.a_pin, pin_value)
+        if self.b_pin >= 0:
+            self.GPIO.output(self.b_pin, pin_value)
 
         # Turn motors off by setting duty cycle back to zero.
         dutycycle = 0.0
+        self.target_speed = 0.0
         self.PWM.ChangeDutyCycle(dutycycle)
 
     def enable_motor(self, enabled):
@@ -93,9 +108,11 @@ class Motor():
     def change_motor_speed(self, speed=0.0):
         """ Called from this class's RUN loop
             to change actual speed to target speed. """
+        logging.info("{} Motor Speed: {}".format(self.motor_name, speed))
         self.current_speed = speed  # Store current set speed
 
         # If speed is < 0.0, we are driving in reverse.
+        self.forward = True
         if speed < 0.0:
             # Normalise speed value to be in range [0, 100]
             speed = -speed
@@ -107,11 +124,15 @@ class Motor():
 
         # Set motor directional pins
         if self.forward:
-            self.GPIO.output(self.a_pin, 1)
-            self.GPIO.output(self.b_pin, 0)
+            if self.a_pin >= 0:
+                self.GPIO.output(self.a_pin, 1)
+            if self.b_pin >= 0:
+                self.GPIO.output(self.b_pin, 0)
         else:
-            self.GPIO.output(self.a_pin, 0)
-            self.GPIO.output(self.b_pin, 1)
+            if self.a_pin >= 0:
+                self.GPIO.output(self.a_pin, 0)
+            if self.b_pin >= 0:
+                self.GPIO.output(self.b_pin, 1)
 
         # Convert speed into PWM duty cycle
         # and clamp values to min/max ranges.
@@ -130,13 +151,18 @@ class Motor():
 
     def run(self):
         """ Method loops constantly. Call as a new thread. """
-        self.running = True  # Flag set to TRUE, runs until its turned off.
-
-        while self.running:
-            # Does nothing at the moment.
-            # Future improvement to cope with acceleration.
-            if self.current_speed != self.target_speed:
-                self.change_motor_speed(self.target_speed)
+        try:
+            self.running = True  # Flag set to TRUE, runs until its turned off.
+            while self.running:
+                # Does nothing at the moment.
+                # Future improvement to cope with acceleration.
+                if self.current_speed != self.target_speed:
+                    self.change_motor_speed(self.target_speed)
+                # Very small delay between run loops
+                time.sleep(0.005)
+        except Exception as e:
+            # Handle EVERY exception to try and fail safe
+            print(e)
 
         # If thread terminated, ensure motors are OFF
         self.set_neutral(braked=True)
