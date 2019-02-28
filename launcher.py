@@ -235,7 +235,7 @@ class launcher:
             # Display Bot name and header information
             self.oled.canvas.text(
                 (10, header_y),
-                'TITO 3: ' + current_mode_name,
+                'TITO 5: ' + current_mode_name,
                 fill=1)
             # Line underneath header
             self.oled.canvas.line(
