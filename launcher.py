@@ -498,9 +498,9 @@ class launcher:
                                 # allow motors to move freely.
                                 # NOTE: will ALWAYS work
                                 self.core.enable_motors(
-                                    not self.core.motors_enabled
+                                    not self.core.motors_enabled()
                                 )
-                                if self.core.motors_enabled:
+                                if self.core.motors_enabled():
                                     print("Enabled")
                                 else:
                                     print("Neutral")

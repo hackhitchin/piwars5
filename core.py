@@ -241,6 +241,15 @@ class Core():
         self.motor['front_left'].set_neutral(braked)
         self.motor['front_right'].set_neutral(braked)
 
+    def motors_enabled(self):
+        if (self.motor['left'].enabled and
+           self.motor['right'].enabled and
+           self.motor['front_left'].enabled and
+           self.motor['front_right'].enabled):
+            return True
+        else:
+            return False
+
     def enable_motors(self, enable):
         """ Called when we want to enable/disable the motors.
             When disabled, will ignore any new motor commands. """
