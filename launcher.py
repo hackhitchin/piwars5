@@ -12,6 +12,7 @@ import rc
 import speed
 import wall_follower
 import rainbow
+import tof_calibrate
 
 # import VL53L0X
 
@@ -39,6 +40,8 @@ class Mode(Enum):
     MODE_SPEED = 5
     MODE_SPEED_LINEAR = 6
     MODE_RAINBOW = 7
+    MODE_TOF_CALIBRATE = 8
+    MODE_KILL_PROCESS = 9
 
 
 class launcher:
@@ -66,11 +69,13 @@ class launcher:
         self.menu_list = OrderedDict((
             (Mode.MODE_POWER, "Power Off"),
             (Mode.MODE_REBOOT, "Reboot"),
+            (Mode.MODE_KILL_PROCESS, "Kill Process"),
             (Mode.MODE_RC, "RC"),
             (Mode.MODE_MAZE, "Maze"),
             (Mode.MODE_SPEED, "Speed"),
             (Mode.MODE_SPEED_LINEAR, "Linear Speed"),
-            (Mode.MODE_RAINBOW, "Rainbow")
+            (Mode.MODE_RAINBOW, "Rainbow"),
+            (Mode.MODE_TOF_CALIBRATE, "TOF Calibrate")
         ))
         self.current_mode = Mode.MODE_NONE
         self.menu_mode = Mode.MODE_RC
@@ -124,8 +129,10 @@ class launcher:
             if x == mode:
                 index = count
             count = count + 1
-        return list(self.menu_list.keys())[index+1]
-
+        list_keys = list(self.menu_list.keys())
+        if index + 1 >= len(list_keys):
+            index = -1  # Loop back to start of list
+        return list_keys[index + 1]
 
     def get_previous_mode(self, mode):
         """ Find the previous menu item """
@@ -140,7 +147,10 @@ class launcher:
             if x == mode:
                 index = count
             count = count + 1
-        return list(self.menu_list.keys())[index-1]
+        list_keys = list(self.menu_list.keys())
+        if index - 1 < 0:
+            index = len(list_keys)  # Loop back to end of list
+        return list_keys[index - 1]
 
     def show_message(self, message):
         """ Show state on OLED display """
@@ -169,6 +179,9 @@ class launcher:
         elif self.menu_mode == Mode.MODE_REBOOT:
             logging.info("Reboot")
             self.reboot()
+        elif self.menu_mode == Mode.MODE_KILL_PROCESS:
+            logging.info("Kill Process")
+            self.kill_process()
         elif self.menu_mode == Mode.MODE_RC:
             logging.info("RC Mode")
             self.start_rc_mode()
@@ -184,6 +197,9 @@ class launcher:
         elif self.menu_mode == Mode.MODE_RAINBOW:
             self.start_rainbow_mode()
             logging.info("Rainbow Mode")
+        elif self.menu_mode == Mode.MODE_TOF_CALIBRATE:
+            self.start_tof_calibrate_mode()
+            logging.info("TOF Calibrate Mode")
 
     def menu_up(self):
         self.menu_mode = self.get_previous_mode(self.menu_mode)
@@ -290,6 +306,18 @@ class launcher:
         logging.info("Rebooting Pi")
         os.system("sudo reboot")
 
+    def kill_process(self):
+        """ Power down the pi """
+        self.stop()
+        if self.oled is not None:
+            self.oled.cls()  # Clear Screen
+            self.oled.canvas.text((10, 10), 'Killing Process...', fill=1)
+            # Now show the mesasge on the screen
+            self.oled.display()
+        # Stop running this python module
+        logging.info("Exiting Process")
+        quit()
+
     def start_speed_mode(self, linear):
         # Kill any previous Challenge / RC mode
         self.stop_threads()
@@ -362,7 +390,7 @@ class launcher:
         self.current_mode = Mode.MODE_RAINBOW
         self.core.speed_factor = 0.4
 
-        logging.info("Entering into Maze mode")
+        logging.info("Entering into Rainbow mode")
         self.challenge = rainbow.Rainbow(self.core, self.oled)
 
         logging.info("Starting Rainbow thread")
@@ -370,6 +398,29 @@ class launcher:
             target=self.challenge.run)
         self.challenge_thread.start()
         logging.info("Rainbow thread running")
+
+    def start_tof_calibrate_mode(self):
+        # Kill any previous Challenge / RC mode, yada yada as above
+        self.stop_threads()
+
+        self.current_mode = Mode.MODE_TOF_CALIBRATE
+
+        logging.info("Entering into TOF Calibrate mode")
+        self.challenge = tof_calibrate.Tof_Calibrate(self.core, self.oled)
+
+        logging.info("Starting TOF Calibrate thread")
+        self.challenge_thread = threading.Thread(
+            target=self.challenge.run)
+        self.challenge_thread.start()
+        logging.info("TOF Calibrate thread running")
+
+    def stop(self):
+        """ Stop the entire program safely. """
+        launcher.controller = None
+        launcher.stop_threads()  # This will set neutral for us.
+        print("Clearing up")
+        launcher.core.cleanup()
+        launcher.GPIO.cleanup()
 
     def run(self):
         """ Main Running loop controling bot mode and menu state """

@@ -54,6 +54,7 @@ class Motor():
 
     def cleanup(self):
         """ Perform all necessary tasks to destruct this class. """
+        self.stop()
         self.PWM.stop()  # stop the PWM output
 
     def increase_speed_factor(self):
