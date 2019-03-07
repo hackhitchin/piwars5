@@ -60,7 +60,7 @@ class rc:
                 # states and pass speeds to motors.
 
                 # Get joystick values from the left analogue stick
-                # x_axis, y_axis = self.controller['lx', 'ly']
+                # x_axis, y_axis = self.controller['rx', 'ly', 'lt', 'rt', 'tx', 'ty']
                 x_axis, y_axis = self.controller['rx', 'ly']
 
                 l_throttle, r_throttle = self.mixer(
@@ -69,10 +69,10 @@ class rc:
                 if self.core_module:
                     self.core_module.throttle(l_throttle, r_throttle)
 
-                    if self.core_module.motors_enabled:
-                        print("Motors %0.2f, %0.2f" % (l_throttle, r_throttle))
-                    else:
-                        print("RC: NEUTRAL")
+                    #if self.core_module.motors_enabled:
+                    #    print("Motors %0.2f, %0.2f" % (l_throttle, r_throttle))
+                    #else:
+                    #    print("RC: NEUTRAL")
 
                 # Show motor speeds on LCD
                 # if (nTicksSinceLastMenuUpdate == -1 or

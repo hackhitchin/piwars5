@@ -1,5 +1,5 @@
-# Piwars 4.0
-Back at it again!
+# Piwars 5.0
+Groundhog day yet again!
 
 ## Aim for this year
 We decided this year to go back to grass routes and keep things as simple as possible. This notion lasted about 3 weeks before I saw a funky new distance sensor on kickstarter called the "protractor". It returns the distance and angle to the nearest item in its field of view. Kinda cool!
@@ -23,11 +23,11 @@ The new motor controllers (although more expensive) are straight H-Bridges that 
 cd ~  
 mkdir Projects  
 cd Projects  
-git clone https://github.com/hackhitchin/piwars4.git  
+git clone https://github.com/hackhitchin/piwars5.git  
 sudo apt-get install python-dev python-setuptools  
 sudo easy_install -U RPIO  
-sudo pip install --upgrade pip enum34  
-sudo pip install ordereddict
+sudo pip3 install --upgrade pip enum34  
+sudo pip3 install ordereddict
 ```  
   
 Note: I2C must be enabled in the interfacing options of raspi-config.
