@@ -185,6 +185,12 @@ class Core():
                 print("{}mm".format(distance_front))
                 print('######')
 
+    def set_speed_factor(self, factor):
+        self.motor['left'].set_speed_factor(factor)
+        self.motor['right'].set_speed_factor(factor)
+        self.motor['front_left'].set_speed_factor(factor)
+        self.motor['front_right'].set_speed_factor(factor)
+
     def increase_speed_factor(self):
         self.motor['left'].increase_speed_factor()
         self.motor['right'].increase_speed_factor()

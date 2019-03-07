@@ -334,7 +334,7 @@ class launcher:
             style = None  # Default to whatever.
 
         # Set sensible speed
-        self.core.speed_factor = 0.4
+        self.set_speed_factor(0.4)
 
         # Inform user we are about to start RC mode
         logging.info("Entering into SPEED Mode")
@@ -356,7 +356,7 @@ class launcher:
         self.current_mode = Mode.MODE_RC
 
         # Set maximum power for RC
-        self.core.speed_factor = 1.0
+        self.set_speed_factor(1.0)
 
         # Inform user we are about to start RC mode
         logging.info("Entering into RC Mode")
@@ -375,7 +375,7 @@ class launcher:
         self.stop_threads()
 
         self.current_mode = Mode.MODE_MAZE
-        self.core.speed_factor = 0.4
+        self.set_speed_factor(0.4)
 
         logging.info("Entering into Maze mode")
         self.challenge = wall_follower.WallFollower(self.core, self.oled)
@@ -391,7 +391,7 @@ class launcher:
         self.stop_threads()
 
         self.current_mode = Mode.MODE_RAINBOW
-        self.core.speed_factor = 0.4
+        self.set_speed_factor(0.4)
 
         logging.info("Entering into Rainbow mode")
         self.challenge = rainbow.Rainbow(self.core, self.oled)
