@@ -60,7 +60,7 @@ class rc:
                 # states and pass speeds to motors.
 
                 # Get joystick values from the left analogue stick
-                # x_axis, y_axis = self.controller['lx', 'ly']
+                # x_axis, y_axis = self.controller['rx', 'ly', 'lt', 'rt', 'tx', 'ty']
                 x_axis, y_axis = self.controller['rx', 'ly']
 
                 l_throttle, r_throttle = self.mixer(

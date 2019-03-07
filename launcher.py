@@ -48,6 +48,7 @@ class launcher:
     def __init__(self):
         # Initialise controller and bind now
         self.controller = None
+        self.current_batt = None
 
         # Initialise GPIO
         self.GPIO = GPIO
@@ -187,7 +188,7 @@ class launcher:
             self.start_rc_mode()
         elif self.menu_mode == Mode.MODE_SPEED:
             logging.info("Speed Mode")
-            self.start_speed_mode()
+            self.start_speed_mode(False)
         elif self.menu_mode == Mode.MODE_SPEED_LINEAR:
             logging.info("Linear Speed Mode")
             self.start_speed_mode(True)
@@ -214,6 +215,8 @@ class launcher:
         # Display current menu item to prompt for when no OLED attached
         mode_name = self.get_mode_name(self.menu_mode)
         print(mode_name)
+        if self.current_batt is not None:
+            print(self.current_batt)
 
         # Clear Screen
         if self.oled is not None:
@@ -428,6 +431,8 @@ class launcher:
         self.show_message('Booting...')
         self.show_message('Initialising Bluetooth...')
 
+        start = time.time()
+
         # Never stop looking for controller.
         while not self.killed:
 
@@ -448,6 +453,11 @@ class launcher:
                 # Initialise controller and bind now
 
                 with ControllerResource(dead_zone=0.1, hot_zone=0.2) as self.controller:
+                    # Get battery level
+                    self.current_batt = 0
+                    battery_level = self.controller.battery_level
+                    if battery_level:
+                        self.current_batt = battery_level
 
                     # Show state on OLED display
                     self.show_menu()
@@ -506,10 +516,18 @@ class launcher:
                                     print("Neutral")
 
                             # Increase or Decrease motor speed factor
-                            if 'r1' in self.controller.presses or 'r2' in self.controller.presses:
+                            if 'r1' in self.controller.presses:
                                 self.core.increase_speed_factor()
-                            if 'l1' in self.controller.presses or 'l2' in self.controller.presses:
+                            if 'l1' in self.controller.presses:
                                 self.core.decrease_speed_factor()
+
+                            # Increase or Decrease motor speed factor
+                            # if 'r2' in self.controller.presses:
+                            #     self.core.increase_speed_factor()
+                            # if 'l2' in self.controller.presses:
+                            #     self.core.decrease_speed_factor()
+                            # if 'ps4_pad' in self.controller.presses:
+                            #     self.core.decrease_speed_factor()
 
                             # toggle on/off the gun motor
                             if 'square' in self.controller.presses:
@@ -531,6 +549,16 @@ class launcher:
                                 self.challenge.show_state()
 
                         time.sleep(0.05)
+                        done = time.time()
+                        elapsed = done - start
+                        if elapsed > 60:
+                            battery_level = self.controller.battery_level
+                            if battery_level:
+                                self.current_batt = battery_level
+
+                    # If bot out of range, set neutral as safety
+                    print('Controller disconnected!')
+                    self.core.set_neutral()
 
             except IOError:
                 logging.error(
