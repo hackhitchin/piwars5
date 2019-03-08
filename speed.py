@@ -20,8 +20,10 @@ class Speed:
         self.deadband = 100  # size of deadband in mm
 
         # self.pidc = PID.PID(1.0, 0.0, 0.0)
-        self.threshold_side = 400.0
-        self.threshold_front = 100.0  # 200.0 - too prone to stopping unnecessarily
+        self.threshold_side = 300.0
+        # 20mm Small distance, basically
+        # its just going to hit and we need to stop
+        self.threshold_front = 20.0
 
         self.off_the_line_time = 0.25
 
@@ -33,7 +35,7 @@ class Speed:
         """ Use the linear method to decide motor speeds. """
         speed_max = 1.0
         distance_offset = distance_left - distance_right
-        course_width = 550.0
+        turn_force_per_mm = 0.01
 
         if (abs(distance_offset) <= self.deadband):
             # Within reasonable tolerance of centre, don't bother steering
@@ -41,20 +43,15 @@ class Speed:
             leftspeed = speed_max
             rightspeed = speed_max
         else:
-            # Clamp offset to 100mm (arbitrary value for now)
-
             # Calculate how much to reduce speed by on ONE MOTOR ONLY
-            speed_drop = (abs(distance_offset) / float(course_width))
-            print("DropSpeed = {}".format(speed_drop))
-
-            fudge_factor = 1.0
-            speed_drop *= fudge_factor
+            speed_drop = (abs(distance_offset) * turn_force_per_mm)
 
             # Cap speed drop to [0.0, 1.0]
             if speed_drop < 0:
                 speed_drop = 0
             if speed_drop > 1.0:
                 speed_drop = 1.0
+            print("DropSpeed = {}".format(speed_drop))
 
             if distance_offset < 0:
                 leftspeed = speed_max - speed_drop
@@ -102,7 +99,7 @@ class Speed:
                 leftspeed = (speed_mid - (c_deviation * speed_range * 0.8))
                 rightspeed = (speed_mid + (c_deviation * speed_range))
 
-        # rightspeed *= 0.8  # FUDGE the right motors slower a bit because they are stronger
+        rightspeed *= 0.8  # FUDGE the right motors slower a bit because they are stronger
 
         return leftspeed, rightspeed
 
@@ -199,7 +196,8 @@ class Speed:
 
             # Have we fallen out of the end of
             # the course or nearing obstruction?
-            if ((distance_left > self.threshold_side and distance_right > self.threshold_side) or
+            if ((distance_left > self.threshold_side and
+               distance_right > self.threshold_side) or
                distance_front < self.threshold_front):
                 print("Outside of speed run")
                 self.killed = True
