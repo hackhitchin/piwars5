@@ -133,7 +133,7 @@ class Speed:
         """ Show motor/aux config on OLED display """
         if self.oled is not None:
             # Format the speed to 2dp
-            if self.core.motors_enabled:
+            if self.core.motors_enabled():
                 message = "SPEED: %0.2f" % (self.core.get_speed_factor())
             else:
                 message = "SPEED: NEUTRAL (%0.2f)" % (self.core.get_speed_factor())
@@ -149,7 +149,7 @@ class Speed:
         # Wait (and do nothing) until we enable
         # motors or kill the challenge thread.
         print("Waiting for motor enable")
-        while not self.killed and not self.core.motors_enabled:
+        while not self.killed and not self.core.motors_enabled():
             time.sleep(0.5)
 
         # Stop processing if we have killed the thread

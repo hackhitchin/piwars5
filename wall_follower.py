@@ -37,12 +37,12 @@ class WallFollower:
 
     def set_control_mode(self, mode):
         self.control_mode = mode
-        
+
     def show_state(self):
         """ Show motor/aux config on OLED display """
         if self.oled is not None:
             # Format the speed to 2dp
-            if self.core.motors_enabled:
+            if self.core.motors_enabled():
                 message = "SPEED: %0.2f" % (self.core.speed_factor)
             else:
                 message = "SPEED: NEUTRAL (%0.2f)" % (self.core.speed_factor)
@@ -50,7 +50,7 @@ class WallFollower:
             self.oled.cls()  # Clear Screen
             self.oled.canvas.text((10, 10), message, fill=1)
             # Now show the mesasge on the screen
-            self.oled.display()        
+            self.oled.display()
 
     def decide_speeds(self, sensorvalue, ignore_d):
         """ Set up return values at the start"""

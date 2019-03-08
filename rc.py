@@ -27,7 +27,7 @@ class rc:
         """ Show motor/aux config on OLED display """
         if self.oled is not None:
             # Format the speed to 2dp
-            if self.core_module.motors_enabled:
+            if self.core_module.motors_enabled():
                 message = "RC: %0.2f" % (self.core_module.speed_factor)
             else:
                 message = "RC: NEUT (%0.2f)" % (self.core_module.speed_factor)
