@@ -57,6 +57,9 @@ class Motor():
         self.stop()
         self.PWM.stop()  # stop the PWM output
 
+    def get_speed_factor(self):
+        return self.speed_factor
+
     def set_speed_factor(self, factor):
         self.speed_factor = factor
         # Clamp speed factor to [0.1, 1.0]

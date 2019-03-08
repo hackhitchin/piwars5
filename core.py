@@ -47,6 +47,8 @@ class Core():
         self.i2cbus = VL53L0X.i2cbus
         self.resetting_motors = False
         self.ena_pins = False
+        self.enable_front_motors = True
+        self.enable_rear_motors = True
 
         # Motors will be disabled by default.
         self.GPIO = GPIO
@@ -185,6 +187,15 @@ class Core():
                 print("{}mm".format(distance_front))
                 print('######')
 
+    def get_speed_factor(self):
+        speed_factor = (
+            self.motor['left'].get_speed_factor() +
+            self.motor['right'].get_speed_factor() +
+            self.motor['front_left'].get_speed_factor() +
+            self.motor['front_right'].get_speed_factor()
+        ) / 4.0
+        return speed_factor
+
     def set_speed_factor(self, factor):
         self.motor['left'].set_speed_factor(factor)
         self.motor['right'].set_speed_factor(factor)
@@ -248,9 +259,9 @@ class Core():
         self.motor['front_right'].set_neutral(braked)
 
     def motors_enabled(self):
-        if (self.motor['left'].enabled and
-           self.motor['right'].enabled and
-           self.motor['front_left'].enabled and
+        if (self.motor['left'].enabled or
+           self.motor['right'].enabled or
+           self.motor['front_left'].enabled or
            self.motor['front_right'].enabled):
             return True
         else:
@@ -259,10 +270,15 @@ class Core():
     def enable_motors(self, enable):
         """ Called when we want to enable/disable the motors.
             When disabled, will ignore any new motor commands. """
-        self.motor['left'].enable_motor(enable)
-        self.motor['right'].enable_motor(enable)
-        self.motor['front_left'].enable_motor(enable)
-        self.motor['front_right'].enable_motor(enable)
+        self.enable_motors_front_rear(enable, enable)
+
+    def enable_motors_front_rear(self, enable_front, enable_rear):
+        """ Called when we want to enable/disable the motors.
+            When disabled, will ignore any new motor commands. """
+        self.motor['left'].enable_motor(enable_rear)
+        self.motor['right'].enable_motor(enable_rear)
+        self.motor['front_left'].enable_motor(enable_front)
+        self.motor['front_right'].enable_motor(enable_front)
 
     def enable_gun(self, enable):
         speed = -50

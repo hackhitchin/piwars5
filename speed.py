@@ -21,7 +21,7 @@ class Speed:
 
         # self.pidc = PID.PID(1.0, 0.0, 0.0)
         self.threshold_side = 400.0
-        self.threshold_front = 50.0  # 200.0 - too prone to stopping unnecessarily
+        self.threshold_front = 100.0  # 200.0 - too prone to stopping unnecessarily
 
         self.off_the_line_time = 0.25
 
@@ -29,10 +29,11 @@ class Speed:
         """Simple method to stop the RC loop"""
         self.killed = True
 
-    def decide_speeds_linear(self, distance_offset):
+    def decide_speeds_linear(self, distance_left, distance_right):
         """ Use the linear method to decide motor speeds. """
         speed_max = 1.0
-        arbitrary_offset = 100
+        distance_offset = distance_left - distance_right
+        course_width = 550.0
 
         if (abs(distance_offset) <= self.deadband):
             # Within reasonable tolerance of centre, don't bother steering
@@ -41,27 +42,19 @@ class Speed:
             rightspeed = speed_max
         else:
             # Clamp offset to 100mm (arbitrary value for now)
-            if distance_offset > arbitrary_offset:
-                distance_offset = arbitrary_offset
-            elif distance_offset < -arbitrary_offset:
-                distance_offset = -arbitrary_offset
 
             # Calculate how much to reduce speed by on ONE MOTOR ONLY
-            speed_drop = (abs(distance_offset) / float(arbitrary_offset))
+            speed_drop = (abs(distance_offset) / float(course_width))
             print("DropSpeed = {}".format(speed_drop))
 
-            # Linear drop in turning ability.speed_factor
-            # the faster we go, the less we turn.
-            min_ff = 0.4
-            max_ff = 1.0
-            speed_drop_ff = 1.0 - self.core.speed_factor
-            if speed_drop_ff < min_ff:
-                speed_drop_ff = min_ff
-            if speed_drop_ff > max_ff:
-                speed_drop_ff = max_ff
+            fudge_factor = 1.0
+            speed_drop *= fudge_factor
 
-            # Reduce speed drop by factor to turning sensitivity/affect.
-            speed_drop *= speed_drop_ff  # 0.8
+            # Cap speed drop to [0.0, 1.0]
+            if speed_drop < 0:
+                speed_drop = 0
+            if speed_drop > 1.0:
+                speed_drop = 1.0
 
             if distance_offset < 0:
                 leftspeed = speed_max - speed_drop
@@ -79,8 +72,9 @@ class Speed:
 
         return leftspeed, rightspeed
 
-    def decide_speeds_pid(self, distance_offset):
+    def decide_speeds_pid(self, distance_left, distance_right):
         """ Use the pid  method to decide motor speeds. """
+        distance_offset = distance_left - distance_right
         speed_mid = 1  # 0.3 safe
         speed_range = 1  # -0.2 - backwards motors?
         distance_range = 150.0  # was 50
@@ -112,18 +106,18 @@ class Speed:
 
         return leftspeed, rightspeed
 
-    def decide_speeds(self, distance_offset, time_delta):
+    def decide_speeds(self, distance_left, distance_right, time_delta):
         """ Set up return values at the start"""
         leftspeed = 0
         rightspeed = 0
 
         if self.control_mode == "LINEAR":
             leftspeed, rightspeed = self.decide_speeds_linear(
-                distance_offset
+                distance_left, distance_right
             )
         elif self.control_mode == "PID":
             leftspeed, rightspeed = self.decide_speeds_pid(
-                distance_offset
+                distance_left, distance_right
             )
 
         # Linearly increase motor speeds off the line
@@ -140,9 +134,9 @@ class Speed:
         if self.oled is not None:
             # Format the speed to 2dp
             if self.core.motors_enabled:
-                message = "SPEED: %0.2f" % (self.core.speed_factor)
+                message = "SPEED: %0.2f" % (self.core.get_speed_factor())
             else:
-                message = "SPEED: NEUTRAL (%0.2f)" % (self.core.speed_factor)
+                message = "SPEED: NEUTRAL (%0.2f)" % (self.core.get_speed_factor())
 
             self.oled.cls()  # Clear Screen
             self.oled.canvas.text((10, 10), message, fill=1)
@@ -219,13 +213,12 @@ class Speed:
                 if self.control_mode == "LINEAR":
                     self.deadband = (distance_left + distance_right) / 4.0
 
-                # Got too close, ensure motors are actually working
-                #if distance_left <= 80 or distance_right <= 80:
-                #    print("Resetting motors")
-                #    self.core.reset_motors()
-
                 # Calculate motor speeds
-                leftspeed, rightspeed = self.decide_speeds(distance_offset, time_delta)
+                leftspeed, rightspeed = self.decide_speeds(
+                    distance_left,
+                    distance_right,
+                    time_delta
+                )
 
                 if (time.time() < soft_start_time):
                     leftspeed = leftspeed * soft_start_power
