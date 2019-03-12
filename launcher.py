@@ -507,9 +507,18 @@ class launcher:
                                 # Toggle motor enable/disable
                                 # allow motors to move freely.
                                 # NOTE: will ALWAYS work
-                                self.core.enable_motors(
-                                    not self.core.motors_enabled()
-                                )
+                                if (self.challenge is not None and
+                                   self.menu_mode != Mode.MODE_RC):
+                                    enable_front = False
+                                    enable_rear = not self.core.motors_enabled()
+                                    self.core.enable_motors_front_rear(
+                                        enable_front,
+                                        enable_rear
+                                    )
+                                else:
+                                    self.core.enable_motors(
+                                        not self.core.motors_enabled()
+                                    )
                                 if self.core.motors_enabled():
                                     print("Enabled")
                                 else:

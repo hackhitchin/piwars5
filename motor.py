@@ -71,8 +71,8 @@ class Motor():
             self.speed_factor = 0.1
         print ("New speed factor %0.1f" % (self.speed_factor))
 
-    def increase_speed_factor(self):
-        self.speed_factor += 0.1
+    def increase_speed_factor(self, increment=0.05):
+        self.speed_factor += increment
         # Clamp speed factor to [0.1, 1.0]
         if self.speed_factor > 1.0:
             self.speed_factor = 1.0
@@ -80,8 +80,8 @@ class Motor():
             self.speed_factor = 0.1
         print ("New speed factor %0.1f" % (self.speed_factor))
 
-    def decrease_speed_factor(self):
-        self.speed_factor -= 0.1
+    def decrease_speed_factor(self, increment=0.05):
+        self.speed_factor -= increment
         # Clamp speed factor to [0.1, 1.0]
         if self.speed_factor > 1.0:
             self.speed_factor = 1.0

@@ -204,17 +204,17 @@ class Core():
         self.motor['front_left'].set_speed_factor(factor)
         self.motor['front_right'].set_speed_factor(factor)
 
-    def increase_speed_factor(self):
-        self.motor['left'].increase_speed_factor()
-        self.motor['right'].increase_speed_factor()
-        self.motor['front_left'].increase_speed_factor()
-        self.motor['front_right'].increase_speed_factor()
+    def increase_speed_factor(self, increment=0.05):
+        self.motor['left'].increase_speed_factor(increment)
+        self.motor['right'].increase_speed_factor(increment)
+        self.motor['front_left'].increase_speed_factor(increment)
+        self.motor['front_right'].increase_speed_factor(increment)
 
-    def decrease_speed_factor(self):
-        self.motor['left'].decrease_speed_factor()
-        self.motor['right'].decrease_speed_factor()
-        self.motor['front_left'].decrease_speed_factor()
-        self.motor['front_right'].decrease_speed_factor()
+    def decrease_speed_factor(self, increment=0.05):
+        self.motor['left'].decrease_speed_factor(increment)
+        self.motor['right'].decrease_speed_factor(increment)
+        self.motor['front_left'].decrease_speed_factor(increment)
+        self.motor['front_right'].decrease_speed_factor(increment)
 
     def cleanup(self):
         self.motor['left'].cleanup()  # stop the PWM output
