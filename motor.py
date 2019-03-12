@@ -28,6 +28,8 @@ class Motor():
         self.pwm_pin = pwm_pin
         self.enabled = enabled  # Disabled by default by
         self.pwm_frequency = pwm_frequency
+        self.percent_change_per_interval = 0.0  # zero means instant
+        self.set_full_accelleration_time(0.0)
 
         # Setup the GPIO pins as OUTPUTS
         self.GPIO.setup(pwm_pin, self.GPIO.OUT)
@@ -162,6 +164,15 @@ class Motor():
         # Change the PWM duty cycle based on fabs() of speed value.
         self.PWM.ChangeDutyCycle(dutycycle)
 
+    def set_full_accelleration_time(self, time_in_seconds):
+        """ Set the time it should take to
+        accellerate from zero to 100% in seconds. """
+        if time_in_seconds == 0.0:
+            self.percent_change_per_interval = 0.0
+        else:
+            number_of_intervals = time_in_seconds / 0.005
+            self.percent_change_per_interval = 100.0 / number_of_intervals
+
     def stop(self):
         """ Call this method to stop the thread. """
         self.running = False
@@ -174,7 +185,28 @@ class Motor():
                 # Does nothing at the moment.
                 # Future improvement to cope with acceleration.
                 if self.current_speed != self.target_speed:
-                    self.change_motor_speed(self.target_speed)
+
+                    # zero means instant
+                    if self.percent_change_per_interval == 0.0:
+                        self.change_motor_speed(self.target_speed)
+                    else:
+                        percent_change = self.percent_change_per_interval
+                        # Invert percent change if decelerating
+                        new_speed = self.target_speed
+                        if self.target_speed > self.current_speed:
+                            # Calculate new speed and set it
+                            new_speed = self.current_speed + percent_change
+                            if new_speed > self.target_speed:
+                                new_speed = self.target_speed
+                        elif self.target_speed < self.current_speed:
+                            # Calculate new speed and set it
+                            percent_change = -percent_change
+                            new_speed = self.current_speed + percent_change
+                            if new_speed < self.target_speed:
+                                new_speed = self.target_speed
+
+                        self.change_motor_speed(new_speed)
+
                 # Very small delay between run loops
                 time.sleep(0.005)
         except Exception as e:
