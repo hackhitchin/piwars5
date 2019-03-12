@@ -11,16 +11,16 @@ class Speed:
         self.killed = False
         self.core = core_module
         self.time_limit = 6  # How many seconds before auto cutoff
-        # self.pidc = PID.PID(0.7, 0.3, 0.4) # best I've got so far
-        self.pidc = PID.PID(1.3, 0.4, 0.6)
+        # self.pidc = PID.PID(1.3, 0.4, 0.6)  # 2wd speed test Initial Settings
+        self.pidc = PID.PID(1.5, 0.4, 0.8)
         if control_mode is None:
             self.control_mode = "PID"
         else:
             self.control_mode = control_mode
-        self.deadband = 100  # size of deadband in mm
+        self.deadband = 50  # size of deadband in mm
 
         # self.pidc = PID.PID(1.0, 0.0, 0.0)
-        self.threshold_side = 300.0
+        self.threshold_side = 400.0
         # 20mm Small distance, basically
         # its just going to hit and we need to stop
         self.threshold_front = 20.0
@@ -85,19 +85,19 @@ class Speed:
 
         print("PID out: %f" % deviation)
 
-        if (abs(distance_offset) <= self.deadband):
-            # Within reasonable tolerance of centre, don't bother steering
-            print("Deadband")
-            leftspeed = speed_max
-            rightspeed = speed_max
+        # if (abs(distance_offset) <= self.deadband):
+        #     # Within reasonable tolerance of centre, don't bother steering
+        #     print("Deadband")
+        #     leftspeed = speed_max
+        #     rightspeed = speed_max
+        # else:
+        # Slow one motor more than we speed the other one up
+        if (c_deviation > 0):
+            leftspeed = (speed_mid - (c_deviation * speed_range))
+            rightspeed = (speed_mid + (c_deviation * speed_range * 0.8))
         else:
-            # Slow one motor more than we speed the other one up
-            if (c_deviation > 0):
-                leftspeed = (speed_mid - (c_deviation * speed_range))
-                rightspeed = (speed_mid + (c_deviation * speed_range * 0.8))
-            else:
-                leftspeed = (speed_mid - (c_deviation * speed_range * 0.8))
-                rightspeed = (speed_mid + (c_deviation * speed_range))
+            leftspeed = (speed_mid - (c_deviation * speed_range * 0.8))
+            rightspeed = (speed_mid + (c_deviation * speed_range))
 
         rightspeed *= 0.8  # FUDGE the right motors slower a bit because they are stronger
 
@@ -208,8 +208,8 @@ class Speed:
                 distance_offset = distance_left - distance_right
                 print("Offset is %d (%d : %d)" % (distance_offset, distance_left, distance_right))
 
-                if self.control_mode == "LINEAR":
-                    self.deadband = (distance_left + distance_right) / 4.0
+                #if self.control_mode == "LINEAR":
+                #    self.deadband = (distance_left + distance_right) / 4.0
 
                 # Calculate motor speeds
                 leftspeed, rightspeed = self.decide_speeds(

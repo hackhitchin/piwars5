@@ -187,6 +187,8 @@ class Core():
                 print("{}mm".format(distance_front))
                 print('######')
 
+        self.enable_motors(False)
+
     def get_speed_factor(self):
         speed_factor = (
             self.motor['left'].get_speed_factor() +

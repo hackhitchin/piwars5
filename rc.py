@@ -28,9 +28,9 @@ class rc:
         if self.oled is not None:
             # Format the speed to 2dp
             if self.core_module.motors_enabled():
-                message = "RC: %0.2f" % (self.core_module.speed_factor)
+                message = "RC: %0.2f" % (self.core_module.get_speed_factor())
             else:
-                message = "RC: NEUT (%0.2f)" % (self.core_module.speed_factor)
+                message = "RC: NEUT (%0.2f)" % (self.core_module.get_speed_factor())
 
             self.oled.cls()  # Clear Screen
             self.oled.canvas.text((10, 10), message, fill=1)

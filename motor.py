@@ -121,6 +121,10 @@ class Motor():
     def change_motor_speed(self, speed=0.0):
         """ Called from this class's RUN loop
             to change actual speed to target speed. """
+        if not self.enabled:
+            self.set_neutral(braked=False)
+            return
+
         logging.info("{} Motor Speed: {}".format(self.motor_name, speed))
         self.current_speed = speed  # Store current set speed
 
