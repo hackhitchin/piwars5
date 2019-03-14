@@ -22,7 +22,8 @@ class WallFollower:
         self.tick_time = 0.1  # How many seconds per control loop
         self.time_limit = 16  # How many seconds to run for
         self.follow_left = True
-        self.switched_wall = False
+        self.switches_count = 0
+        self.exit_speed = 1.0
 
 # known good for straight line, underdamped
 #        self.pidc = PID.PID(0.5, 0.0, 0.2)
@@ -103,7 +104,7 @@ class WallFollower:
             # maze, cautious: mid -0.1, range -0.2
             # maze, tuned: mid -0.14, range -0.2
 
-            speed_mid = 14 # 0.14
+            speed_mid = 14 * self.exit_speed # 0.14
             speed_range = -20
 
             distance_midpoint = 200.0
@@ -199,16 +200,32 @@ class WallFollower:
 
             ignore_d = False
             # Have we crossed over the middle of the course?
-            if (side_prox > 350 and
+            if (self.switches_count = 0 and side_prox > 350 and
+               (side_prox - 100 > prev_prox) ):
+                print("Distance above threshold, follow left through hairpins")
+                self.follow_left = True
+                self.switches_count = 1
+                # Tell PID not to wig out too much
+                ignore_d = True
+            else if (self.switches_count = 1 and side_prox > 350 and
+               (side_prox - 100 > prev_prox) ):
+                print("Distance above threshold, follow right again")
+                self.follow_left = False
+                self.switches_count = 2
+                # Tell PID not to wig out too much
+                ignore_d = True
+            if (self.switches_count = 2 and side_prox > 350 and
                (side_prox - 100 > prev_prox) and
                self.switched_wall is False):
-                print("Distance above threshold, follow right")
+                print("Distance above threshold, exit maze")
                 self.follow_left = False
-                self.switched_wall = True
+                self.switches_count = 3
+                # Do something to slow down speed and make us exit gracefully
+                self.exit_speed = 0.7
                 # Tell PID not to wig out too much
                 ignore_d = True
             leftspeed = 0
-            rightspeed = 0
+            rightspeed = 0                
 
             leftspeed, rightspeed = self.decide_speeds(
                 min(side_prox, front_prox),
