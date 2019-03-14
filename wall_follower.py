@@ -44,9 +44,9 @@ class WallFollower:
         if self.oled is not None:
             # Format the speed to 2dp
             if self.core.motors_enabled():
-                message = "SPEED: %0.2f" % (self.core.speed_factor)
+                message = "SPEED: %0.2f" % (self.core.get_speed_factor())
             else:
-                message = "SPEED: NEUTRAL (%0.2f)" % (self.core.speed_factor)
+                message = "SPEED: NEUTRAL (%0.2f)" % (self.core.get_speed_factor())
 
             self.oled.cls()  # Clear Screen
             self.oled.canvas.text((10, 10), message, fill=1)
@@ -104,7 +104,7 @@ class WallFollower:
             # maze, cautious: mid -0.1, range -0.2
             # maze, tuned: mid -0.14, range -0.2
 
-            speed_mid = 14 * self.exit_speed # 0.14
+            speed_mid = 14 * self.exit_speed  # 0.14
             speed_range = -20
 
             distance_midpoint = 200.0
@@ -141,7 +141,7 @@ class WallFollower:
         self.core.enable_motors(True)
 
         tick_limit = self.time_limit / self.tick_time
-        print("Tick limit %d" % (tick_limit) )
+        print("Tick limit %d" % (tick_limit))
         self.set_control_mode("PID")
 
         side_prox = 0
@@ -149,19 +149,19 @@ class WallFollower:
 
         while not self.killed and self.ticks < tick_limit and side_prox != -1:
             prev_prox = side_prox
-            
+
             # Old API
-            #d_left = self.core.read_sensor(0)
-            #d_front = self.core.read_sensor(1) - 150
-            #d_right = self.core.read_sensor(2)
-            
+            # d_left = self.core.read_sensor(0)
+            # d_front = self.core.read_sensor(1) - 150
+            # d_right = self.core.read_sensor(2)
+
             # New API
             try:
                 lidar_dev = self.core.lidars[
                     str(I2C_Lidar.LIDAR_RIGHT)
                 ]
                 d_left = lidar_dev['device'].get_distance()
-                print("Left: %d" % (d_left) )
+                print("Left: %d" % (d_left))
             except KeyError:
                 d_left = -1
             try:
@@ -169,7 +169,7 @@ class WallFollower:
                     str(I2C_Lidar.LIDAR_FRONT)
                 ]
                 d_front = lidar_dev['device'].get_distance()
-                print("Front: %d" % (d_front) )
+                print("Front: %d" % (d_front))
             except KeyError:
                 d_front = -1
             try:
@@ -177,9 +177,9 @@ class WallFollower:
                     str(I2C_Lidar.LIDAR_LEFT)
                 ]
                 d_right = lidar_dev['device'].get_distance()
-                print("Right: %d" % (d_right) )
+                print("Right: %d" % (d_right))
             except KeyError:
-                d_right = -1            
+                d_right = -1
 
             # Which wall are we following?
             if self.follow_left:
@@ -187,7 +187,8 @@ class WallFollower:
             else:
                 side_prox = d_right
 
-            # Keep X times more distance from the bot's front than from the side
+            # Keep X times more distance from the
+            # bot's front than from the side
             front_cautious = 1.6
             front_prox = d_front / front_cautious
 
@@ -200,23 +201,22 @@ class WallFollower:
 
             ignore_d = False
             # Have we crossed over the middle of the course?
-            if (self.switches_count = 0 and side_prox > 350 and
-               (side_prox - 100 > prev_prox) ):
+            if (self.switches_count == 0 and side_prox > 350 and
+               (side_prox - 100 > prev_prox)):
                 print("Distance above threshold, follow left through hairpins")
                 self.follow_left = True
                 self.switches_count = 1
                 # Tell PID not to wig out too much
                 ignore_d = True
-            else if (self.switches_count = 1 and side_prox > 350 and
-               (side_prox - 100 > prev_prox) ):
+            elif (self.switches_count == 1 and side_prox > 350 and
+                  (side_prox - 100 > prev_prox)):
                 print("Distance above threshold, follow right again")
                 self.follow_left = False
                 self.switches_count = 2
                 # Tell PID not to wig out too much
                 ignore_d = True
-            if (self.switches_count = 2 and side_prox > 350 and
-               (side_prox - 100 > prev_prox) and
-               self.switched_wall is False):
+            elif (self.switches_count == 2 and side_prox > 350 and
+                  (side_prox - 100 > prev_prox)):
                 print("Distance above threshold, exit maze")
                 self.follow_left = False
                 self.switches_count = 3
@@ -225,25 +225,25 @@ class WallFollower:
                 # Tell PID not to wig out too much
                 ignore_d = True
             leftspeed = 0
-            rightspeed = 0                
+            rightspeed = 0
 
             leftspeed, rightspeed = self.decide_speeds(
                 min(side_prox, front_prox),
                 ignore_d
             )
-            
+
             self.core.throttle(leftspeed, rightspeed)
             print("Motors %0.2f, %0.2f" % (leftspeed, rightspeed))
             print("Are we dead?")
             print(self.killed)
-            print("%d ticks" % (self.ticks) )
+            print("%d ticks" % (self.ticks))
 
             self.ticks = self.ticks + 1
             time.sleep(0.1)
 
         print("Ticks %d" % self.ticks)
 
-        self.core.set_neutral(False)
+        self.core.set_neutral(braked=False)
 
 
 if __name__ == "__main__":
