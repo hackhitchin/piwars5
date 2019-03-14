@@ -138,7 +138,17 @@ class WallFollower:
     def run(self):
         print("Start run")
         """Read a sensor and set motor speeds accordingly"""
-        self.core.enable_motors(True)
+        # self.core.enable_motors(True)
+
+        print("Waiting for motor enable")
+        while not self.killed and not self.core.motors_enabled():
+            time.sleep(0.5)
+
+        # Stop processing if we have killed the thread
+        if self.killed:
+            return
+
+        print("Starting maze run now...")
 
         tick_limit = self.time_limit / self.tick_time
         print("Tick limit %d" % (tick_limit))
