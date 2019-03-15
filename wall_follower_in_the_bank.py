@@ -54,23 +54,61 @@ class WallFollower:
             # Now show the mesasge on the screen
             self.oled.display()
 
-    def decide_speeds(self, sensorvalue, ignore_d, d_front):
+    def decide_speeds(self, sensorvalue, ignore_d):
         """ Set up return values at the start"""
         leftspeed = 0
         rightspeed = 0
 
-        if self.control_mode == "PID":
+        if self.control_mode == "LINEAR":
+            speed_mid = -0.2
+            speed_range = 0.06
+            """ Deviation is distance from intended midpoint.
+                Right is positive, left is negative
+                Rate is how much to add/subtract from motor speed """
+
+            distance_midpoint = 200.0  # mm
+            distance_range = 100.0  # mm
+            deviation = (sensorvalue - distance_midpoint) / distance_range  # [-1, 1]
+
+            # Gate value to [-1,1] for the sake of not driving backwards
+            if (deviation < -1):
+                deviation = -1
+            if (deviation > 1):
+                deviation = 1
+            if self.follow_left:
+                leftspeed = (speed_mid - (deviation * speed_range))
+                rightspeed = (speed_mid + (deviation * speed_range))
+            else:
+                leftspeed = (speed_mid + (deviation * speed_range))
+                rightspeed = (speed_mid - (deviation * speed_range))
+
+            return leftspeed, rightspeed
+
+        elif self.control_mode == "EXPO":
+            speed_mid = 0.05
+            speed_range = 0.05
+
+            distance_midpoint = 200.0  # mm
+            distance_range = 100.0  # mm
+            deviation = (sensorvalue - distance_midpoint) / distance_range  # [-1, 1]
+
+            if (deviation < 0):
+                deviation = 0 - (deviation * deviation)
+            else:
+                deviation = deviation * deviation
+
+            leftspeed = (speed_mid - (deviation * speed_range))
+            rightspeed = (speed_mid + (deviation * speed_range))
+
+        elif self.control_mode == "PID":
             # straight line, cautious: mid -0.2, range -0.2
             # maze, cautious: mid -0.1, range -0.2
             # maze, tuned: mid -0.14, range -0.2
 
-            # Known working speeds
-            # speed_mid = 40 * self.exit_speed
-            # # Positive for Left/Right, Negative for Right/Left
-            # speed_range = -55
-            speed_mid = 60 * self.exit_speed
+            # speed_mid = 14 * self.exit_speed  # 0.14
+            speed_mid = 40 * self.exit_speed
             # Positive for Left/Right, Negative for Right/Left
-            speed_range = -70
+            speed_range = -55
 
             distance_midpoint = 250.0
             distance_range = 100.0
@@ -88,10 +126,6 @@ class WallFollower:
             else:
                 leftspeed = (speed_mid + (c_deviation * speed_range))
                 rightspeed = (speed_mid - (c_deviation * speed_range))
-
-            if d_front < 600:
-                leftspeed *= 0.70
-                rightspeed *= 0.70
 
             if (leftspeed < rightspeed):
                 print("Turning left")
@@ -168,7 +202,7 @@ class WallFollower:
 
             # Keep X times more distance from the
             # bot's front than from the side
-            front_cautious = 3.5  # 2.5
+            front_cautious = 2.5  # 1.6
             front_prox = d_front / front_cautious
 
             # Have we fallen out of the end of the course?
@@ -181,43 +215,42 @@ class WallFollower:
 
             ignore_d = False
             # Have we crossed over the middle of the course?
-            if (side_prox > 350 and side_prox - 150 > prev_prox and self.ticks > 5):
-                print("*** SWITCH EVENT {} ***".format(self.switches_count))
-                if (self.switches_count == 0):
-                    print("Distance above threshold, left through hairpins")
-                    self.follow_left = True
-                    self.switches_count = 1
-                    # Tell PID not to wig out too much
-                    ignore_d = True
-                    self.last_switch_ticks = self.ticks
-                elif (self.switches_count == 1):
-                    print("Distance above threshold, follow right again")
-                    self.follow_left = False
-                    self.switches_count = 2
-                    # Tell PID not to wig out too much
-                    ignore_d = True
-                    self.last_switch_ticks = self.ticks
-                elif (self.switches_count == 2 and self.ticks > self.last_switch_ticks + 40):
-                    print("Distance above threshold, exit maze")
-                    self.follow_left = True
-                    self.switches_count = 3
-                    # Slow down to make us exit gracefully?
-                    self.exit_speed = 1.0  # Slowing down is for wimps
-                    # Tell PID not to wig out too much
-                    ignore_d = True
-                    self.last_switch_ticks = self.ticks
-
-            # Potentially irrelevant if we exit on stage 2
+            switch_event = False
+            if side_prox - 150 > prev_prox:
+                switch_event = True
+                print("*** SWITCH EVENT ***")
+            if (self.switches_count == 0 and side_prox > 350 and
+               switch_event):
+                print("Distance above threshold, follow left through hairpins")
+                self.follow_left = True
+                self.switches_count = 1
+                # Tell PID not to wig out too much
+                ignore_d = True
+            elif (self.switches_count == 1 and side_prox > 350 and
+                  switch_event):
+                print("Distance above threshold, follow right again")
+                self.follow_left = False
+                self.switches_count = 2
+                # Tell PID not to wig out too much
+                ignore_d = True
+            elif (self.switches_count == 2 and side_prox > 350 and
+                  switch_event):
+                print("Distance above threshold, exit maze")
+                self.follow_left = True
+                self.switches_count = 3
+                # Do something to slow down speed and make us exit gracefully
+                self.exit_speed = 1.0  # Slowing down is for wimps
+                # Tell PID not to wig out too much
+                ignore_d = True
             elif (self.switches_count == 3 and front_prox < 350):
-                    print("Close enough to the last wall, turn right")
-                    self.switches_count = 4
+                print("Close enough to the last wall, turn right")
+                self.switches_count = 4
             leftspeed = 0
             rightspeed = 0
 
             leftspeed, rightspeed = self.decide_speeds(
                 min(side_prox, front_prox),
-                ignore_d,
-                d_front
+                ignore_d
             )
 
             self.core.throttle(leftspeed, rightspeed)
