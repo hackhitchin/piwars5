@@ -26,11 +26,25 @@ class WallFollower:
         self.exit_speed = 1.0
         self.last_switch_ticks = 0
 
-# known good for straight line, underdamped
-#        self.pidc = PID.PID(0.5, 0.0, 0.2)
+        self.distance_midpoint = 250.0
+        self.distance_range = 100.0
 
-# test for maze:
-#        self.pidc = PID.PID(0.5, 0.0, 0.1)
+        # Keep X times more distance from the
+        # bot's front than from the side
+        self.front_cautious = 3.5  # 2.5
+
+        # Known working speeds
+        # speed_mid = 40 * self.exit_speed
+        # # Positive for Left/Right, Negative for Right/Left
+        # speed_range = -55
+        self.speed_mid = 60 * self.exit_speed
+        # Positive for Left/Right, Negative for Right/Left
+        self.speed_range = -70
+
+        self.front_high_speed_threshold = 600
+        self.low_speed_factor = 0.70
+
+        # PID class
         self.pidc = PID.PID(0.5, 0.0, 0.1)
 
     def stop(self):
@@ -60,38 +74,24 @@ class WallFollower:
         rightspeed = 0
 
         if self.control_mode == "PID":
-            # straight line, cautious: mid -0.2, range -0.2
-            # maze, cautious: mid -0.1, range -0.2
-            # maze, tuned: mid -0.14, range -0.2
-
-            # Known working speeds
-            # speed_mid = 40 * self.exit_speed
-            # # Positive for Left/Right, Negative for Right/Left
-            # speed_range = -55
-            speed_mid = 60 * self.exit_speed
-            # Positive for Left/Right, Negative for Right/Left
-            speed_range = -70
-
-            distance_midpoint = 250.0
-            distance_range = 100.0
-            error = (sensorvalue - distance_midpoint)
+            error = (sensorvalue - self.distance_midpoint)
             self.pidc.update(error, ignore_d)
 
-            deviation = self.pidc.output / distance_range
+            deviation = self.pidc.output / self.distance_range
             c_deviation = max(-1.0, min(1.0, deviation))
 
             print("PID out: %f" % deviation)
 
             if self.follow_left:
-                leftspeed = (speed_mid - (c_deviation * speed_range))
-                rightspeed = (speed_mid + (c_deviation * speed_range))
+                leftspeed = (self.speed_mid - (c_deviation * self.speed_range))
+                rightspeed = (self.speed_mid + (c_deviation * self.speed_range))
             else:
-                leftspeed = (speed_mid + (c_deviation * speed_range))
-                rightspeed = (speed_mid - (c_deviation * speed_range))
+                leftspeed = (self.speed_mid + (c_deviation * self.speed_range))
+                rightspeed = (self.speed_mid - (c_deviation * self.speed_range))
 
-            if d_front < 600:
-                leftspeed *= 0.70
-                rightspeed *= 0.70
+            if d_front < self.front_high_speed_threshold:
+                leftspeed *= self.low_speed_factor
+                rightspeed *= self.low_speed_factor
 
             if (leftspeed < rightspeed):
                 print("Turning left")
@@ -99,8 +99,8 @@ class WallFollower:
                 print("Turning right")
 
         else:
-            leftspeed = speed_mid
-            rightspeed = speed_mid
+            leftspeed = self.speed_mid
+            rightspeed = self.speed_mid
 
         return leftspeed, rightspeed
 
@@ -128,11 +128,6 @@ class WallFollower:
 
         while not self.killed and self.ticks < tick_limit and side_prox != -1:
             prev_prox = side_prox
-
-            # Old API
-            # d_left = self.core.read_sensor(0)
-            # d_front = self.core.read_sensor(1) - 150
-            # d_right = self.core.read_sensor(2)
 
             # New API
             try:
@@ -168,8 +163,7 @@ class WallFollower:
 
             # Keep X times more distance from the
             # bot's front than from the side
-            front_cautious = 3.5  # 2.5
-            front_prox = d_front / front_cautious
+            front_prox = d_front / self.front_cautious
 
             # Have we fallen out of the end of the course?
             # if d_left > 400 and d_right > 400 and d_front > 400:
