@@ -22,11 +22,10 @@ MOTOR_FRONT_RIGHT_PWM = 7
 MOTOR_FRONT_RIGHT_A = 1
 MOTOR_FRONT_RIGHT_B = 0
 
-MOTOR_GUN_SERVO = 13
-MOTOR_TURRET_SERVO = 6
-MOTOR_GUN_PWM = 12
-MOTOR_GUN_A = 5
-MOTOR_GUN_B = 25
+MOTOR_GUN_SERVO = 12
+MOTOR_GUN_PWM = 5
+MOTOR_GUN_A = 13
+MOTOR_GUN_B = 6
 
 
 class I2C_Lidar(Enum):
@@ -57,14 +56,8 @@ class Core():
         self.GPIO.setup(MOTOR_GUN_SERVO, GPIO.OUT)
         self.gun_servo = self.GPIO.PWM(MOTOR_GUN_SERVO, 100)  # pin 33
         duty = float(175.0) / 10.0 + 2.5
+        # duty = float(60.0) / 10.0 + 2.5
         self.gun_servo.start(duty)
-
-        # turret servo config
-        self.turret_max = 180.0 / 2.0
-        self.turret_min = 15.0
-        self.turret_current = self.turret_min
-        self.GPIO.setup(MOTOR_TURRET_SERVO, GPIO.OUT)
-        duty = float(self.turret_min) / 10.0 + 2.5
 
         # Configure motor pins with GPIO
         self.motor = dict()
@@ -282,8 +275,13 @@ class Core():
         self.motor['front_left'].enable_motor(enable_front)
         self.motor['front_right'].enable_motor(enable_front)
 
+    def gun_enabled(self):
+        enabled = self.motor['gun'].enabled
+        return enabled
+
     def enable_gun(self, enable):
-        speed = -50
+        print("Gun enabled {}".format(enable))
+        speed = -50.0  # 50% speed
         self.motor['gun'].enable_motor(enable)
         self.motor['gun'].set_motor_speed(speed)
 
