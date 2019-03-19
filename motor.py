@@ -105,6 +105,7 @@ class Motor():
         # Turn motors off by setting duty cycle back to zero.
         dutycycle = 0.0
         self.target_speed = 0.0
+        self.current_speed = 0.0
         self.PWM.ChangeDutyCycle(dutycycle)
 
     def enable_motor(self, enabled):

@@ -543,9 +543,9 @@ class launcher:
                                 self.core.enable_gun(not self.core.gun_enabled())
                             # Fire the gun
                             if 'circle' in self.controller.presses:
-                                self.core.fire_gun(5)
+                                self.core.fire_gun(170)
                                 time.sleep(1.0)
-                                self.core.fire_gun(175)
+                                self.core.fire_gun(30)
 
                             # Move turret up/down
                             # if 'triangle' in self.controller.presses:

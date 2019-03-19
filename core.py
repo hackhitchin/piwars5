@@ -22,10 +22,10 @@ MOTOR_FRONT_RIGHT_PWM = 7
 MOTOR_FRONT_RIGHT_A = 1
 MOTOR_FRONT_RIGHT_B = 0
 
-MOTOR_GUN_SERVO = 12
-MOTOR_GUN_PWM = 5
-MOTOR_GUN_A = 13
-MOTOR_GUN_B = 6
+MOTOR_GUN_SERVO = 6
+MOTOR_GUN_PWM = 13
+MOTOR_GUN_A = 12
+MOTOR_GUN_B = 5
 
 
 class I2C_Lidar(Enum):
@@ -55,7 +55,7 @@ class Core():
 
         self.GPIO.setup(MOTOR_GUN_SERVO, GPIO.OUT)
         self.gun_servo = self.GPIO.PWM(MOTOR_GUN_SERVO, 100)  # pin 33
-        duty = float(175.0) / 10.0 + 2.5
+        duty = float(5.0) / 10.0 + 2.5
         # duty = float(60.0) / 10.0 + 2.5
         self.gun_servo.start(duty)
 
@@ -116,6 +116,9 @@ class Core():
         self.gun_motor_thread = threading.Thread(
             target=self.motor['gun'].run)
         self.gun_motor_thread.start()
+
+        # Set gun motor to have slow accelleration to limit damage on motors
+        self.motor['gun'].set_full_accelleration_time(2.0)
 
         # Create a list of I2C time of flight lidar sensors
         # Note: we need to dynamically alter each
@@ -281,8 +284,10 @@ class Core():
 
     def enable_gun(self, enable):
         print("Gun enabled {}".format(enable))
-        speed = -50.0  # 50% speed
         self.motor['gun'].enable_motor(enable)
+        speed = 0.0
+        if enable:
+            speed = 40.0  # 50% speed
         self.motor['gun'].set_motor_speed(speed)
 
     def fire_gun(self, angle):
