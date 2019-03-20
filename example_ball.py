@@ -118,7 +118,7 @@ class StreamProcessor(threading.Thread):
         elif colour == 'yellow':
             imrange = cv2.inRange(
                 image,
-                # numpy.array((15, 64, 64)),
+                # numpy.array((15, 85, 64)),
                 # numpy.array((35, 255, 255))
                 numpy.array((20, 100, 75)),
                 numpy.array((40, 255, 255))
@@ -236,19 +236,19 @@ class StreamProcessor(threading.Thread):
                     lookingatcolour = colour
                     # Have we found all four colours?
                     if len(arenacolours) == 4:
-                        print('I found all the colours')
-                        state = state.ORIENTING
+                        print('I found all the colours, now im looking at {0} hunting a {1}'.format(lookingatcolour, challengecolours[0]))
+                        colourindex = 0
+                        colour = challengecolours[0]
+                        state = State.HUNTING
                         time.sleep(2)
             elif state == State.ORIENTING and lookingatcolour == '':
                 # If we can see a colour, set lookingatcolour and go hunting
                 print('Im looking at a {0} ball, lets hunt a {1} one'.format(colour, challengecolours[0]))
                 lookingatcolour = colour
+                colourindex = 0
+                colour = challengecolours[0]
                 state = State.HUNTING
-                time.sleep(2)
-            elif state == State.ORIENTING:
-                print('I recall Im looking at {0}, lets find {1}'.format(lookingatcolour, challengecolours[0]))
-                state = State.HUNTING
-                time.sleep(2)                
+                time.sleep(2)             
             elif state == State.HUNTING:
                 if area < autoMinArea:
                     print('Too small / far')
@@ -292,10 +292,18 @@ class StreamProcessor(threading.Thread):
                         if driveLeft < hunt_reverse:
                             driveLeft = hunt_reverse
         else:
-            print('No %s ball' % colour)
             # Figure out which direction to seek from arenacolours
-            driveLeft = seek
-            driveRight = 0-seek
+            if state == State.HUNTING and (arenacolours.index(colour) == arenacolours.index(lookingatcolour)-1 or 
+                arenacolours.index(colour) == arenacolours.index(lookingatcolour)+3):
+                # colour we want is left of looking-at-colour, turn leftwards
+                print('No {0} ball, {0} is left of {1}, turn left'.format(colour, lookingatcolour))
+                driveLeft = 0-seek
+                driveRight = seek
+            else:
+                print('No {0} ball, turn right'.format(colour))
+                # turn right like we normally do
+                driveLeft = seek
+                driveRight = 0-seek
 
         if tickInt == 0:
             asciiTick = "|   "
@@ -317,7 +325,7 @@ class StreamProcessor(threading.Thread):
         #  colours on each tick; otherwise focus on the coloru we're hunting
         if state == State.LEARNING or state == State.ORIENTING:
             colour = challengecolours[tickInt]
-        print('{0} ({1}) {2:4.1f}, {3:4.1f} - {4}'.format(state, asciiTick, driveLeft, driveRight, arenacolours))
+        print('{0} ({1}) {2:4.1f}, {3:4.1f} - {4}, {5} > {6}'.format(state, asciiTick, driveLeft, driveRight, arenacolours, lookingatcolour, colour))
         self.core_module.throttle(driveLeft*100, driveRight*100)
         if (driveLeft == backoff):
             time.sleep(0.8)
