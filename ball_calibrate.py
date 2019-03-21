@@ -7,13 +7,13 @@ from picamera.array import PiRGBArray
 import sys
 
 lower_bounds = [np.array([160,100,50]),
-      np.array([15,100,50]),
-      np.array([60,100,50]),
-      np.array([90,150,50])]
+      np.array([20,150,50]),
+      np.array([50,100,50]),
+      np.array([85,120,50])]
 upper_bounds = [np.array([180,255,255]),
-      np.array([35,255,255]),
+      np.array([40,255,255]),
       np.array([80,255,255]),
-      np.array([130,255,255])]
+      np.array([135,255,255])]
 colourindex = 0
 
 def showimage(img, title = "CV image"):
@@ -79,8 +79,8 @@ def colourmask(img, index):
    lower_bound = lower_bounds[index]
    upper_bound = upper_bounds[index]
 
-   print lower_bound
-   print upper_bound
+   print (lower_bound)
+   print (upper_bound)
    
    mask = cv2.inRange(hsv, lower_bound, upper_bound)
    res = cv2.bitwise_and(img,img, mask= mask)
@@ -129,7 +129,7 @@ def main():
    time.sleep(1)
    
    while(True):
-      cmd = raw_input("Command? ")
+      cmd = input("Command? ")
 
       cv2.destroyAllWindows()   
 
@@ -160,8 +160,8 @@ def main():
       elif (cmd == "bb"):
          colourindex = 3
       elif (cmd == "p"):
-         print lower_bounds 
-         print upper_bounds
+         print (lower_bounds )
+         print (upper_bounds)
       elif (cmd == "r"):    
          showme = "raw"
       elif (cmd == "m"):    
@@ -191,7 +191,7 @@ def main():
       # find the contours of the mask
       _, contours, hierarchy = cv2.findContours(contourmask, 1, 2)
       
-      print len(contours)
+      print (len(contours))
       
       # for each contour, find centroid and blob on image
       for cnt in contours:
@@ -201,7 +201,7 @@ def main():
          # find area, ditch ones that are too small
          area = cv2.contourArea(cnt)
          
-         print area
+         print (area)
          
          if (area > 100):
             # find aspect ratio, area ratio of contour
@@ -214,8 +214,8 @@ def main():
             
             extent = float(area)/rect_area
             aspect = float(w)/h
-            print "extent = " + str(extent)
-            print "aspect = " + str(aspect)
+            print ("extent = " + str(extent))
+            print ("aspect = " + str(aspect))
             
             # centroid!
             M = cv2.moments(cnt)
