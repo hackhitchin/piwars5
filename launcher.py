@@ -14,6 +14,8 @@ import wall_follower
 import rainbow
 import tof_calibrate
 
+from PIL import Image
+
 # import VL53L0X
 
 from enum import Enum
@@ -210,30 +212,10 @@ class launcher:
         self.menu_mode = self.get_next_mode(self.menu_mode)
         self.show_menu()
 
-    def show_menu(self):
-        """ Display menu. """
-        # Display current menu item to prompt for when no OLED attached
-        mode_name = self.get_mode_name(self.menu_mode)
-        print(mode_name)
-        if self.current_batt is not None:
-            print(self.current_batt)
-
-        # Clear Screen
+    def show_menu_header(self, header_y, current_mode_name):
+        """ Draw the menu header. """
         if self.oled is not None:
             self.oled.cls()
-            # Get next and previous list items
-            previous_mode = self.get_previous_mode(self.menu_mode)
-            next_mode = self.get_next_mode(self.menu_mode)
-
-            # Get mode names and display them.
-            current_mode_name = self.get_mode_name(self.current_mode)
-            mode_name_up = self.get_mode_name(previous_mode)
-            mode_name_down = self.get_mode_name(next_mode)
-
-            header_y = 0
-            previous_y = 20
-            current_y = 30
-            next_y = 40
 
             # Display Bot name and header information
             self.oled.canvas.text(
@@ -245,45 +227,145 @@ class launcher:
                 (0, 9, self.oled.width - 1, 9),
                 fill=1)
 
-            # Draw rect around current selection.
-            # NOTE: Has to be done BEFORE text below
-            self.oled.canvas.rectangle(
-                (10, current_y, self.oled.width - 1, current_y + 10),
-                outline=1,
-                fill=0)
+            if self.current_batt:
+                fill_rect = 0
+                if self.current_batt >= 0.2:
+                    fill_rect = 1
+                self.oled.canvas.rectangle(
+                        (self.oled.width - 5, 8, self.oled.width - 2, 0),
+                        outline=1,
+                        fill=fill_rect)
 
-            # show current mode as well as one mode either side
-            self.oled.canvas.text(
-                (15, previous_y),
-                'Mode: ' + mode_name_up,
-                fill=1)
-            self.oled.canvas.text(
-                (15, current_y),
-                'Mode: ' + mode_name,
-                fill=1)
-            self.oled.canvas.text(
-                (15, next_y),
-                'Mode: ' + mode_name_down,
-                fill=1)
+                fill_rect = 0
+                if self.current_batt >= 0.4:
+                    fill_rect = 1
+                self.oled.canvas.rectangle(
+                        (self.oled.width - 10, 8, self.oled.width - 7, 0),
+                        outline=1,
+                        fill=fill_rect)
 
-            # 2x triangles indicating menu direction
-            self.oled.canvas.polygon(
-                ((1, previous_y + 9),
-                 (5, previous_y + 1),
-                 (9, previous_y + 9),
-                 (1, previous_y + 9)),
-                outline=1,
-                fill=0)
-            self.oled.canvas.polygon(
-                ((1, next_y + 1),
-                 (5, next_y + 9),
-                 (9, next_y + 1),
-                 (1, next_y + 1)),
-                outline=1,
-                fill=0)
+                fill_rect = 0
+                if self.current_batt >= 0.6:
+                    fill_rect = 1
+                self.oled.canvas.rectangle(
+                        (self.oled.width - 15, 8, self.oled.width - 12, 0),
+                        outline=1,
+                        fill=fill_rect)
 
-            # Now show the mesasge on the screen
-            self.oled.display()
+                fill_rect = 0
+                if self.current_batt >= 0.8:
+                    fill_rect = 1
+                self.oled.canvas.rectangle(
+                        (self.oled.width - 20, 8, self.oled.width - 17, 0),
+                        outline=1,
+                        fill=fill_rect)
+            else:
+                pass  # No controller yet
+
+    def show_menu(self):
+        """ Display menu. """
+        # Display current menu item to prompt for when no OLED attached
+        mode_name = self.get_mode_name(self.menu_mode)
+        print(mode_name)
+        if self.current_batt is not None:
+            print(self.current_batt)
+
+        # Clear Screen
+        if self.oled is not None:
+
+            header_y = 0
+            previous_y = 20
+            current_y = 30
+            next_y = 40
+
+            # Get next and previous list items
+            previous_mode = self.get_previous_mode(self.menu_mode)
+            next_mode = self.get_next_mode(self.menu_mode)
+
+            # Get mode names and display them.
+            current_mode_name = self.get_mode_name(self.current_mode)
+            mode_name_up = self.get_mode_name(previous_mode)
+            mode_name_down = self.get_mode_name(next_mode)
+
+            self.show_menu_header(header_y, current_mode_name)
+
+            if self.menu_mode == Mode.MODE_MAZE:
+                # Draw Maze logo
+                self.oled.canvas.line(
+                    (self.oled.width - 1, self.oled.height - 1, self.oled.width - 1, 10),
+                    fill=1)
+                self.oled.canvas.line(
+                    (self.oled.width - 1, 10, 0, 10),
+                    fill=1)
+                self.oled.canvas.line(
+                    (0, 10, 0, self.oled.height - 1),
+                    fill=1)
+                self.oled.canvas.line(
+                    (0, self.oled.height - 1, self.oled.width - 64, self.oled.height - 1),
+                    fill=1)
+
+                self.oled.canvas.line(
+                    (self.oled.width - 32, self.oled.height - 1, self.oled.width - 32, self.oled.height - 32),
+                    fill=1)
+                self.oled.canvas.line(
+                    (self.oled.width - 32, self.oled.height - 32, self.oled.width - 64, self.oled.height - 32),
+                    fill=1)
+                self.oled.canvas.line(
+                    (self.oled.width - 64, self.oled.height - 32, self.oled.width - 64, self.oled.height - 16),
+                    fill=1)
+                self.oled.canvas.line(
+                    (self.oled.width - 64, self.oled.height - 16, self.oled.width - 105, self.oled.height - 16),
+                    fill=1)
+                self.oled.canvas.line(
+                    (self.oled.width - 105, self.oled.height - 16, self.oled.width - 105, self.oled.height - 32),
+                    fill=1)
+
+                self.oled.canvas.line(
+                    (self.oled.width - 85, 10, self.oled.width - 85, self.oled.height - 32),
+                    fill=1)
+
+                # Now show the mesasge on the screen
+                self.oled.display()
+            else:
+                # Draw rect around current selection.
+                # NOTE: Has to be done BEFORE text below
+                self.oled.canvas.rectangle(
+                    (10, current_y, self.oled.width - 1, current_y + 10),
+                    outline=1,
+                    fill=0)
+
+                # show current mode as well as one mode either side
+                self.oled.canvas.text(
+                    (15, previous_y),
+                    'Mode: ' + mode_name_up,
+                    fill=1)
+                self.oled.canvas.text(
+                    (15, current_y),
+                    'Mode: ' + mode_name,
+                    fill=1)
+                self.oled.canvas.text(
+                    (15, next_y),
+                    'Mode: ' + mode_name_down,
+                    fill=1)
+
+                # 2x triangles indicating menu direction
+                self.oled.canvas.polygon(
+                    ((1, previous_y + 9),
+                     (5, previous_y + 1),
+                     (9, previous_y + 9),
+                     (1, previous_y + 9)),
+                    outline=1,
+                    fill=0)
+                self.oled.canvas.polygon(
+                    ((1, next_y + 1),
+                     (5, next_y + 9),
+                     (9, next_y + 1),
+                     (1, next_y + 1)),
+                    outline=1,
+                    fill=0)
+
+                # Now show the mesasge on the screen
+                self.oled.display()
 
     def power_off(self):
         """ Power down the pi """
