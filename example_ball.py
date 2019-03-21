@@ -35,6 +35,7 @@ class State(Enum):
      ORIENTING = 2
      HUNTING = 3
      FINISHED = 4
+
 state = State.LEARNING  # What are we doing?
 debug = False
 challengecolours = ['red', 'blue', 'yellow', 'green'] # order to visit
@@ -236,6 +237,10 @@ class StreamProcessor(threading.Thread):
                     lookingatcolour = colour
                     # Have we found all four colours?
                     if len(arenacolours) == 4:
+                        print('Lets remember these for next time')
+                        f = open('arenacolours.txt','w')
+                        f.write("{0}\n{1}\n{2}\n{3}".format(*arenacolours))
+                        f.close()                        
                         print('I found all the colours, now im looking at {0} hunting a {1}'.format(lookingatcolour, challengecolours[0]))
                         colourindex = 0
                         colour = challengecolours[0]
@@ -374,6 +379,7 @@ def main(core_module):
     global imageCentreY
     global state
     global tickInt
+    global arenacolours
 
     if core_module is None:
         # Initialise GPIO
@@ -404,6 +410,16 @@ def main(core_module):
     redgain = float(content[0][2:])
     bluegain = float(content[1][2:])
     camera.awb_gains = (redgain, bluegain)
+    f.close()
+
+    # Load our previously learned arena colour order
+    with open("arenacolours.txt") as f:
+        content = f.readlines()
+    if len(content) > 0:
+        arenacolours = [x.strip() for x in content]
+        state = State.ORIENTING
+    f.close()        
+
 
     imageCentreX = imageWidth / 2.0
     imageCentreY = imageHeight / 2.0
