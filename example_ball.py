@@ -38,7 +38,7 @@ class State(Enum):
 
 state = State.LEARNING  # What are we doing?
 debug = False
-challengecolours = ['red', 'blue', 'yellow', 'green'] # order to visit
+challengecolours = ['blue', 'yellow', 'green', 'red'] # order to visit
 arenacolours = []       # Order we've detected in the arena, clockwise
 colourindex = 0
 colour = challengecolours[colourindex]
@@ -53,8 +53,8 @@ frameRate = 30  # Camera image capture frame rate
 autoMaxPower = 1.0  # Maximum output in automatic mode
 autoMinPower = 0.6  # Minimum output in automatic mode
 autoMinArea = 100  # Smallest target to move towards
-autoMaxArea = 10000  # Largest target to move towards
-autoFullSpeedArea = 300  # Target size at which we use the maximum allowed output
+autoMaxArea = 25000  # Largest target to move towards
+autoFullSpeedArea = 5000  # Target size at which we use the maximum allowed output
 
 
 # Image stream processing thread
@@ -216,7 +216,7 @@ class StreamProcessor(threading.Thread):
         global lookingatcolour
 
         # Tuning constants
-        backoff = -0.6 # how fast to back out of the corner
+        backoff = -0.4 # how fast to back out of the corner
         seek = 1.0 # how fast to turn when we can't see a ball
         hunt_reverse = -0.2 # how fast we may turn a wheel backwards when a ball is in sight
 
