@@ -212,6 +212,113 @@ class launcher:
         self.menu_mode = self.get_next_mode(self.menu_mode)
         self.show_menu()
 
+    def draw_maze(self, x_offset, y_offset):
+        """ Draw the maze icon """
+        self.oled.canvas.line(
+            (x_offset + 45.0, y_offset + 0.0 * -1.0,
+             x_offset + 45.0, y_offset + 24.22 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 45.0, y_offset + 24.22 * -1.0,
+             x_offset + 0.0, y_offset + 24.22 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 0.0, y_offset + 24.22 * -1.0,
+             x_offset + 0.0, y_offset + 0.0 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 0.0, y_offset + 0.0 * -1.0,
+             x_offset + 29.18, y_offset + 0.0 * -1.0),
+            fill=1)
+
+        self.oled.canvas.line(
+            (x_offset + 37.059, y_offset + 0.0 * -1.0,
+             x_offset + 37.059, y_offset + 16.279 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 37.059, y_offset + 16.279 * -1.0,
+             x_offset + 29.118, y_offset + 16.279 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 29.118, y_offset + 16.279 * -1.0,
+             x_offset + 29.118, y_offset + 7.941 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 29.118, y_offset + 7.941 * -1.0,
+             x_offset + 7.941, y_offset + 7.941 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 7.941, y_offset + 7.941 * -1.0,
+             x_offset + 7.941, y_offset + 16.279 * -1.0),
+            fill=1)
+
+        self.oled.canvas.line(
+            (x_offset + 18.529, y_offset + 24.22 * -1.0,
+             x_offset + 18.529, y_offset + 16.279 * -1.0),
+            fill=1)
+
+    def draw_speed_test(self, x_offset, y_offset):
+        """ Draw the maze icon """
+        self.oled.canvas.line(
+            (x_offset + 0.0, y_offset + 0.0 * -1.0,
+             x_offset + 9.477, y_offset + 0.0 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 9.477, y_offset + 0.0 * -1.0,
+             x_offset + 19.395, y_offset + 7.001 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 19.395, y_offset + 7.001 * -1.0,
+             x_offset + 25.605, y_offset + 7.001 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 25.605, y_offset + 7.001 * -1.0,
+             x_offset + 35.523, y_offset + 0.0 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 35.523, y_offset + 0.0 * -1.0,
+             x_offset + 45.0, y_offset + 0.0 * -1.0),
+            fill=1)
+
+        self.oled.canvas.line(
+            (x_offset + 0.0, y_offset + 7.001 * -1.0,
+             x_offset + 5.625, y_offset + 7.001 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 5.625, y_offset + 7.001 * -1.0,
+             x_offset + 16.875, y_offset + 14.942 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 16.875, y_offset + 14.942 * -1.0,
+             x_offset + 28.125, y_offset + 14.942 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 28.125, y_offset + 14.942 * -1.0,
+             x_offset + 39.375, y_offset + 7.001 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 39.375, y_offset + 7.001 * -1.0,
+             x_offset + 45.0, y_offset + 7.001 * -1.0),
+            fill=1)
+
+    def draw_icon_rect(self):
+        self.oled.canvas.line(
+            (39.0, 12.0,
+             89.0, 12.0),
+            fill=1)
+        self.oled.canvas.line(
+            (89.0, 12.0,
+             89.0, 62.0),
+            fill=1)
+        self.oled.canvas.line(
+            (89.0, 62.0,
+             39.0, 62.0),
+            fill=1)
+        self.oled.canvas.line(
+            (39.0, 62.0,
+             39.0, 12.0),
+            fill=1)
+
     def show_menu_header(self, header_y, current_mode_name):
         """ Draw the menu header. """
         if self.oled is not None:
@@ -291,41 +398,16 @@ class launcher:
 
             if self.menu_mode == Mode.MODE_MAZE:
                 # Draw Maze logo
-                self.oled.canvas.line(
-                    (self.oled.width - 1, self.oled.height - 1, self.oled.width - 1, 10),
-                    fill=1)
-                self.oled.canvas.line(
-                    (self.oled.width - 1, 10, 0, 10),
-                    fill=1)
-                self.oled.canvas.line(
-                    (0, 10, 0, self.oled.height - 1),
-                    fill=1)
-                self.oled.canvas.line(
-                    (0, self.oled.height - 1, self.oled.width - 64, self.oled.height - 1),
-                    fill=1)
-
-                self.oled.canvas.line(
-                    (self.oled.width - 32, self.oled.height - 1, self.oled.width - 32, self.oled.height - 32),
-                    fill=1)
-                self.oled.canvas.line(
-                    (self.oled.width - 32, self.oled.height - 32, self.oled.width - 64, self.oled.height - 32),
-                    fill=1)
-                self.oled.canvas.line(
-                    (self.oled.width - 64, self.oled.height - 32, self.oled.width - 64, self.oled.height - 16),
-                    fill=1)
-                self.oled.canvas.line(
-                    (self.oled.width - 64, self.oled.height - 16, self.oled.width - 105, self.oled.height - 16),
-                    fill=1)
-                self.oled.canvas.line(
-                    (self.oled.width - 105, self.oled.height - 16, self.oled.width - 105, self.oled.height - 32),
-                    fill=1)
-
-                self.oled.canvas.line(
-                    (self.oled.width - 85, 10, self.oled.width - 85, self.oled.height - 32),
-                    fill=1)
-
-                # Now show the mesasge on the screen
-                self.oled.display()
+                self.draw_icon_rect()
+                x_offset = 39.0 + 3.0
+                y_offset = 35.0 + 24.22/2.0
+                self.draw_maze(x_offset, y_offset)
+            elif self.menu_mode == Mode.MODE_SPEED:
+                # Draw Speed logo
+                self.draw_icon_rect()
+                x_offset = 39.0 + 3.0
+                y_offset = 35.0 + 14.942/2.0
+                self.draw_speed_test(x_offset, y_offset)
             else:
                 # Draw rect around current selection.
                 # NOTE: Has to be done BEFORE text below
@@ -364,8 +446,8 @@ class launcher:
                     outline=1,
                     fill=0)
 
-                # Now show the mesasge on the screen
-                self.oled.display()
+            # Now show the mesasge on the screen
+            self.oled.display()
 
     def power_off(self):
         """ Power down the pi """
