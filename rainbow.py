@@ -16,7 +16,7 @@ class Rainbow:
         if self.oled is not None:
             # Format the speed to 2dp
             if self.core_module.motors_enabled():
-                message = "Rainbow: %0.2f" % (self.core_module.speed_factor)
+                message = "Rainbow: %0.2f" % (self.core_module.get_speed_factor())
             else:
                 message = "Rainbow: NEUTRAL"
 

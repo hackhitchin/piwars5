@@ -14,25 +14,35 @@ import cv2
 import numpy
 import core
 import RPi.GPIO as GPIO
+from enum import Enum
 
 print('Libraries loaded')
 
 # Global values
-global running
+global state
 # global TB
 global camera
 global processor
 global debug
-global colour
-global colourindex
+global colour            # what we're looking for right now
+global colourindex      # number of the colour we're looking for
 global imageCentreX
 global imageCentreY
 
-running = True
+
+class State(Enum):
+     LEARNING = 1
+     ORIENTING = 2
+     HUNTING = 3
+     FINISHED = 4
+
+state = State.LEARNING  # What are we doing?
 debug = False
-colours = ['red', 'blue', 'yellow', 'green']
+challengecolours = ['blue', 'yellow', 'green', 'red'] # order to visit
+arenacolours = []       # Order we've detected in the arena, clockwise
 colourindex = 0
-colour = colours[colourindex]
+colour = challengecolours[colourindex]
+lookingatcolour = ''
 
 # Camera settings
 imageWidth = 320  # Camera image width
@@ -42,9 +52,9 @@ frameRate = 30  # Camera image capture frame rate
 # Auto drive settings
 autoMaxPower = 1.0  # Maximum output in automatic mode
 autoMinPower = 0.6  # Minimum output in automatic mode
-autoMinArea = 10  # Smallest target to move towards
-autoMaxArea = 10000  # Largest target to move towards
-autoFullSpeedArea = 300  # Target size at which we use the maximum allowed output
+autoMinArea = 100  # Smallest target to move towards
+autoMaxArea = 25000  # Largest target to move towards
+autoFullSpeedArea = 5000  # Target size at which we use the maximum allowed output
 
 
 # Image stream processing thread
@@ -109,7 +119,7 @@ class StreamProcessor(threading.Thread):
         elif colour == 'yellow':
             imrange = cv2.inRange(
                 image,
-                # numpy.array((15, 64, 64)),
+                # numpy.array((15, 85, 64)),
                 # numpy.array((35, 255, 255))
                 numpy.array((20, 100, 75)),
                 numpy.array((40, 255, 255))
@@ -159,7 +169,7 @@ class StreamProcessor(threading.Thread):
         #    cv2.waitKey(0)
 
         # Go through each contour
-        ballsiness = -1
+        squareness = -1
         x = -1
         y = -1
         area = 0
@@ -173,15 +183,15 @@ class StreamProcessor(threading.Thread):
             extent = float(contourarea)/area
             aspect = float(w)/h
 
-            cont_ballsiness = (1.0/aspect if aspect > 1 else aspect)
-            cont_ballsiness *= (0.75/extent if extent > 0.75 else extent)
-            if (cont_ballsiness > ballsiness):
+            cont_squareness = (1.0/aspect if aspect > 1 else aspect)
+            cont_squareness *= (1.0/extent if extent > 1.0 else extent)
+            if (cont_squareness > squareness):
                 if (debug):
-                    print("New ballsiest: %f" % ballsiness)
-                    print(" extent = " + str(extent))
+                    print("New squarest: %f" % squareness)
+                    print(" extent " + str(extent))
                     print(" aspect = " + str(aspect))
                     print(" area = " + str(contourarea))
-                ballsiness = cont_ballsiness
+                squareness = cont_squareness
                 # ballsiest_index = idx
 
         if area > 0:
@@ -191,19 +201,22 @@ class StreamProcessor(threading.Thread):
         # Set drives or report ball status
         self.SetSpeedFromBall(ball)
 
-    # Set the motor speed from the ball position
+    # Make decisions about wht we're doing and
+    # set the motor speed from the ball position
     def SetSpeedFromBall(self, ball):
         global TB
         global colour
-        global colours
+        global challengecolours
+        global arenacolours
         global colourindex
-        global running
+        global state
         global imageCentreX
         global imageCentreY
         global tickInt
+        global lookingatcolour
 
         # Tuning constants
-        backoff = -0.6 # how fast to back out of the corner
+        backoff = -0.4 # how fast to back out of the corner
         seek = 1.0 # how fast to turn when we can't see a ball
         hunt_reverse = -0.2 # how fast we may turn a wheel backwards when a ball is in sight
 
@@ -214,48 +227,88 @@ class StreamProcessor(threading.Thread):
             x = ball[0]
             y = ball[1]
             area = ball[2]
-            if area < autoMinArea:
-                print('Too small / far')
-                driveLeft = autoMinPower
-                driveRight = autoMinPower
-            elif area > autoMaxArea:
-                print('Close enough')
-                colourindex = colourindex + 1
-                if (colourindex >= len(colours)):
-                    print('Donezo!')
-                    running = False
+
+            # If we're learning, just seeing a colour is enough
+            if state == State.LEARNING:
+                # We've seen a ball of a colour - is it what we want?
+                if not (colour in arenacolours):
+                    # It's a new colour
+                    arenacolours.append(colour)
+                    lookingatcolour = colour
+                    # Have we found all four colours?
+                    if len(arenacolours) == 4:
+                        print('Lets remember these for next time')
+                        f = open('arenacolours.txt','w')
+                        f.write("{0}\n{1}\n{2}\n{3}".format(*arenacolours))
+                        f.close()                        
+                        print('I found all the colours, now im looking at {0} hunting a {1}'.format(lookingatcolour, challengecolours[0]))
+                        colourindex = 0
+                        colour = challengecolours[0]
+                        state = State.HUNTING
+                        time.sleep(2)
+            elif state == State.ORIENTING and lookingatcolour == '':
+                # If we can see a colour, set lookingatcolour and go hunting
+                print('Im looking at a {0} ball, lets hunt a {1} one'.format(colour, challengecolours[0]))
+                lookingatcolour = colour
+                colourindex = 0
+                colour = challengecolours[0]
+                state = State.HUNTING
+                time.sleep(2)             
+            elif state == State.HUNTING:
+                if area < autoMinArea:
+                    print('Too small / far')
+                    driveLeft = autoMinPower
+                    driveRight = autoMinPower
+                elif area > autoMaxArea:
+                    print('Close enough')
+
+                    # Remember we're looking at the current colour
+                    lookingatcolour = colour
+                    colourindex = colourindex + 1
+                    if (colourindex >= len(challengecolours)):
+                        print('Donezo!')
+                        state = State.FINISHED
+                    else:
+                        colour = challengecolours[colourindex]
+                        print('Now looking for %s ball' % (colour))
+                        driveLeft = backoff
+                        driveRight = backoff
                 else:
-                    colour = colours[colourindex]
-                    print('Now looking for %s ball' % (colour))
-                    driveLeft = backoff
-                    driveRight = backoff
-            else:
-                if area < autoFullSpeedArea:
-                    speed = 1.0
-                else:
-                    speed = 1.0 / (area / autoFullSpeedArea)
-                speed *= autoMaxPower - autoMinPower
-                speed += autoMinPower
-                direction = (imageCentreX - x) / imageCentreX
-                direction = direction * 5
-                if direction > 0.0:
-                    # Turn right
-                    print('Turn right for %s' % colour)
-                    driveLeft = speed
-                    driveRight = speed * (1.0 - direction)
-                    if driveRight < hunt_reverse:
-                        driveRight = hunt_reverse
-                else:
-                    # Turn left
-                    print('Turn left for %s' % colour)
-                    driveLeft = speed * (1.0 + direction)
-                    driveRight = speed
-                    if driveLeft < hunt_reverse:
-                        driveLeft = hunt_reverse
+                    if area < autoFullSpeedArea:
+                        speed = 1.0
+                    else:
+                        speed = 1.0 / (area / autoFullSpeedArea)
+                    speed *= autoMaxPower - autoMinPower
+                    speed += autoMinPower
+                    direction = (imageCentreX - x) / imageCentreX
+                    direction = direction * 5
+                    if direction > 0.0:
+                        # Turn right
+                        print('Turn right for %s' % colour)
+                        driveLeft = speed
+                        driveRight = speed * (1.0 - direction)
+                        if driveRight < hunt_reverse:
+                            driveRight = hunt_reverse
+                    else:
+                        # Turn left
+                        print('Turn left for %s' % colour)
+                        driveLeft = speed * (1.0 + direction)
+                        driveRight = speed
+                        if driveLeft < hunt_reverse:
+                            driveLeft = hunt_reverse
         else:
-            print('No %s ball' % colour)
-            driveLeft = seek
-            driveRight = 0-seek
+            # Figure out which direction to seek from arenacolours
+            if state == State.HUNTING and (arenacolours.index(colour) == arenacolours.index(lookingatcolour)-1 or 
+                arenacolours.index(colour) == arenacolours.index(lookingatcolour)+3):
+                # colour we want is left of looking-at-colour, turn leftwards
+                print('No {0} ball, {0} is left of {1}, turn left'.format(colour, lookingatcolour))
+                driveLeft = 0-seek
+                driveRight = seek
+            else:
+                print('No {0} ball, turn right'.format(colour))
+                # turn right like we normally do
+                driveLeft = seek
+                driveRight = 0-seek
 
         if tickInt == 0:
             asciiTick = "|   "
@@ -271,8 +324,13 @@ class StreamProcessor(threading.Thread):
             if (driveLeft != backoff):
                 driveLeft = 0
                 driveRight = 0
+
         tickInt = tickInt + 1 if tickInt < 3 else 0
-        print('(%s) %.2f, %.2f' % (asciiTick, driveLeft, driveRight))
+        # If we're figuring out what colour we're looking at, cycle through
+        #  colours on each tick; otherwise focus on the coloru we're hunting
+        if state == State.LEARNING or state == State.ORIENTING:
+            colour = challengecolours[tickInt]
+        print('{0} ({1}) {2:4.1f}, {3:4.1f} - {4}, {5} > {6}'.format(state, asciiTick, driveLeft, driveRight, arenacolours, lookingatcolour, colour))
         self.core_module.throttle(driveLeft*100, driveRight*100)
         if (driveLeft == backoff):
             time.sleep(0.8)
@@ -303,8 +361,8 @@ class ImageCapture(threading.Thread):
 
     # Stream delegation loop
     def TriggerStream(self):
-        global running
-        while running:
+        global state
+        while state != State.FINISHED:
             if processor.event.is_set():
                 time.sleep(0.01)
             else:
@@ -319,8 +377,9 @@ def main(core_module):
     global processor
     global imageCentreX
     global imageCentreY
-    global running
+    global state
     global tickInt
+    global arenacolours
 
     if core_module is None:
         # Initialise GPIO
@@ -351,6 +410,16 @@ def main(core_module):
     redgain = float(content[0][2:])
     bluegain = float(content[1][2:])
     camera.awb_gains = (redgain, bluegain)
+    f.close()
+
+    # Load our previously learned arena colour order
+    with open("arenacolours.txt") as f:
+        content = f.readlines()
+    if len(content) > 0:
+        arenacolours = [x.strip() for x in content]
+        state = State.ORIENTING
+    f.close()        
+
 
     imageCentreX = imageWidth / 2.0
     imageCentreY = imageHeight / 2.0
@@ -368,7 +437,7 @@ def main(core_module):
         # TB.MotorsOff()
         # TB.SetLedShowBattery(True)
         # Loop indefinitely until we are no longer running
-        while running:
+        while state != State.FINISHED:
             # Wait for the interval period
             #
             time.sleep(0.1)
@@ -380,7 +449,7 @@ def main(core_module):
         print(e)
 
     core_module.enable_motors(False)
-    running = False
+    state = State.FINISHED
     captureThread.join()
     processor.terminated = True
     processor.join()
@@ -389,4 +458,4 @@ def main(core_module):
 
 
 if __name__ == '__main__':
-    main()
+    main(None)
