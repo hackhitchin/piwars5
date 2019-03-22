@@ -76,7 +76,7 @@ class launcher:
             (Mode.MODE_RC, "RC"),
             (Mode.MODE_MAZE, "Maze"),
             (Mode.MODE_SPEED, "Speed"),
-            (Mode.MODE_SPEED_LINEAR, "Linear Speed"),
+            # (Mode.MODE_SPEED_LINEAR, "Linear Speed"),
             (Mode.MODE_RAINBOW, "Rainbow"),
             (Mode.MODE_TOF_CALIBRATE, "TOF Calibrate")
         ))
@@ -301,6 +301,123 @@ class launcher:
              x_offset + 45.0, y_offset + 7.001 * -1.0),
             fill=1)
 
+    def draw_rainbow(self, x_offset, y_offset):
+        """ Draw the maze icon """
+        self.oled.canvas.line(
+            (x_offset + 0.0, y_offset + 0.0 * -1.0,
+             x_offset + 0.0, y_offset + 24.219 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 0.0, y_offset + 24.219 * -1.0,
+             x_offset + 24.219, y_offset + 24.219 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 24.219, y_offset + 24.219 * -1.0,
+             x_offset + 24.219, y_offset + 0.0 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 24.219, y_offset + 0.0 * -1.0,
+             x_offset + 0.0, y_offset + 0.0 * -1.0),
+            fill=1)
+
+        self.oled.canvas.line(
+            (x_offset + 10.322, y_offset + 9.147 * -1.0,
+             x_offset + 10.322, y_offset + 15.071 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 10.322, y_offset + 15.071 * -1.0,
+             x_offset + 13.897, y_offset + 15.071 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 13.897, y_offset + 15.071 * -1.0,
+             x_offset + 13.897, y_offset + 9.147 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 13.897, y_offset + 9.147 * -1.0,
+             x_offset + 10.322, y_offset + 9.147 * -1.0),
+            fill=1)
+
+
+        self.oled.canvas.line(
+            (x_offset + 4.274, y_offset + 0.0 * -1.0,
+             x_offset + 0.0, y_offset + 4.273 * -1.0),
+            fill=1)
+
+
+        self.oled.canvas.line(
+            (x_offset + 0.0, y_offset + 19.945 * -1.0,
+             x_offset + 4.274, y_offset + 24.219 * -1.0),
+            fill=1)
+
+
+        self.oled.canvas.line(
+            (x_offset + 19.945, y_offset + 24.219 * -1.0,
+             x_offset + 24.219, y_offset + 19.945 * -1.0),
+            fill=1)
+
+
+        self.oled.canvas.line(
+            (x_offset + 24.219, y_offset + 4.273 * -1.0,
+             x_offset + 19.945, y_offset + 0.0 * -1.0),
+            fill=1)
+
+    def draw_rc(self, x_offset, y_offset):
+        """ Draw the maze icon """
+        self.oled.canvas.line(
+            (x_offset + 0.0, y_offset + 0.0 * -1.0,
+             x_offset + 9.477, y_offset + 14.947 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 9.477, y_offset + 14.947 * -1.0,
+             x_offset + 35.523, y_offset + 14.942 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 35.523, y_offset + 14.942 * -1.0,
+             x_offset + 45.0, y_offset + 0.0 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 45.0, y_offset + 0.0 * -1.0,
+             x_offset + 35.523, y_offset + 0.0 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 35.523, y_offset + 0.0 * -1.0,
+             x_offset + 25.605, y_offset + 7.001 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 25.605, y_offset + 7.001 * -1.0,
+             x_offset + 19.477, y_offset + 7.001 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 19.477, y_offset + 7.001 * -1.0,
+             x_offset + 9.477, y_offset + 0.0 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 9.477, y_offset + 0.0 * -1.0,
+             x_offset + 0.0, y_offset + 0.0 * -1.0),
+            fill=1)
+
+        radius = 1.5
+        self.oled.canvas.ellipse(
+            (x_offset + (16.895 - radius), y_offset + (9.501 + radius) * -1.0,
+             x_offset + (16.895 + radius), y_offset + (9.501 - radius) * -1.0),
+            outline=1,
+            fill=0)
+        self.oled.canvas.ellipse(
+            (x_offset + (28.105 - radius), y_offset + (9.501 + radius) * -1.0,
+             x_offset + (28.105 + radius), y_offset + (9.501 - radius) * -1.0),
+            outline=1,
+            fill=0)
+
+        line_len = 1.5
+        self.oled.canvas.line(
+            (x_offset + (12.44 - line_len), y_offset + 12.65 * -1.0,
+             x_offset + (12.44 + line_len), y_offset + 12.65 * -1.0),
+            fill=1)
+        self.oled.canvas.line(
+            (x_offset + 12.44, y_offset + (12.65 - line_len) * -1.0,
+             x_offset + 12.44, y_offset + (12.65 + line_len) * -1.0),
+            fill=1)
+
     def draw_icon_rect(self):
         self.oled.canvas.line(
             (39.0, 12.0,
@@ -396,21 +513,35 @@ class launcher:
 
             self.show_menu_header(header_y, current_mode_name)
 
+            icon_drawn = True
             if self.menu_mode == Mode.MODE_MAZE:
                 # Draw Maze logo
                 self.draw_icon_rect()
-                x_offset = 39.0 + 3.0
-                y_offset = 35.0 + 24.22/2.0
+                x_offset = 64.0 - 45.0 / 2.0
+                y_offset = 35.0 + 24.22 / 2.0
                 self.draw_maze(x_offset, y_offset)
             elif self.menu_mode == Mode.MODE_SPEED:
                 # Draw Speed logo
                 self.draw_icon_rect()
-                x_offset = 39.0 + 3.0
-                y_offset = 35.0 + 14.942/2.0
+                x_offset = 64.0 - 45.0 / 2.0
+                y_offset = 35.0 + 14.942 / 2.0
                 self.draw_speed_test(x_offset, y_offset)
+            elif self.menu_mode == Mode.MODE_RAINBOW:
+                # Draw Rainbow logo
+                self.draw_icon_rect()
+                x_offset = 64.0 - 24.219 / 2.0
+                y_offset = 35.0 + 24.219 / 2.0
+                self.draw_rainbow(x_offset, y_offset)
+            elif self.menu_mode == Mode.MODE_RC:
+                # Draw Speed logo
+                self.draw_icon_rect()
+                x_offset = 64.0 - 45.0 / 2.0
+                y_offset = 35.0 + 14.942 / 2.0
+                self.draw_rc(x_offset, y_offset)
             else:
                 # Draw rect around current selection.
                 # NOTE: Has to be done BEFORE text below
+                icon_drawn = False
                 self.oled.canvas.rectangle(
                     (10, current_y, self.oled.width - 1, current_y + 10),
                     outline=1,
@@ -443,6 +574,32 @@ class launcher:
                      (5, next_y + 9),
                      (9, next_y + 1),
                      (1, next_y + 1)),
+                    outline=1,
+                    fill=0)
+
+            if icon_drawn:
+                # 2x triangles indicating menu direction
+                self.oled.canvas.polygon(
+                    ((10.0, 30.0),
+                     (15.0, 20.0),
+                     (20.0, 30.0),
+                     (10.0, 30.0)),
+                    outline=1,
+                    fill=0)
+                self.oled.canvas.polygon(
+                    ((10.0, 40.0),
+                     (15.0, 50.0),
+                     (20.0, 40.0),
+                     (10.0, 40.0)),
+                    outline=1,
+                    fill=0)
+
+                # Right arrow to indicate how to enter challenge
+                self.oled.canvas.polygon(
+                    ((100.0, 30.0),
+                     (110.0, 35.0),
+                     (100.0, 40.0),
+                     (100.0, 30.0)),
                     outline=1,
                     fill=0)
 
