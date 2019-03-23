@@ -23,8 +23,9 @@ class Rainbow:
         """ Show motor/aux config on OLED display """
         if self.oled is not None:
             # Format the speed to 2dp
-            if self.core_module.motors_enabled():
-                message = "Rainbow: %0.2f" % (self.core_module.get_speed_factor())
+            if self.core_module and self.core_module.motors_enabled():
+                message = "Rainbow: %0.2f" % (
+                    self.core_module.get_speed_factor())
             else:
                 message = "Rainbow: NEUTRAL"
 
@@ -43,21 +44,6 @@ class Rainbow:
         """ Main Challenge method. Has to exist and is the
             start point for the threaded challenge. """
         # Startup sequence
-        # Load our previously learned arena colour order
-        self.camera = picamera.PiCamera()
-        self.processor = StreamProcessor(self.core_module, self.camera)
-        print('Wait ...')
-        time.sleep(2)
-
-        filename = "arenacolours.txt"
-        if os.path.isfile(filename):
-            with open(filename) as f:
-                content = f.readlines()
-            if len(content) > 0:
-                self.processor.arenacolours = [x.strip() for x in content]
-                self.processor.state = State.ORIENTING
-            f.close()
-
         if self.core_module is None:
             # Initialise GPIO
             GPIO.setwarnings(False)
@@ -72,6 +58,21 @@ class Rainbow:
         # wait for the user to enable motors
         while not self.core_module.motors_enabled():
             time.sleep(0.25)
+
+        # Load our previously learned arena colour order
+        self.camera = picamera.PiCamera()
+        self.processor = StreamProcessor(self.core_module, self.camera)
+        print('Wait ...')
+        time.sleep(2)
+
+        filename = "arenacolours.txt"
+        if os.path.isfile(filename):
+            with open(filename) as f:
+                content = f.readlines()
+            if len(content) > 0:
+                self.processor.arenacolours = [x.strip() for x in content]
+                self.processor.state = State.ORIENTING
+            f.close()
 
         # Setup the camera
         frameRate = 30  # Camera image capture frame rate
@@ -115,3 +116,8 @@ class Rainbow:
         del self.camera
         self.camera = None
         print("Program terminated")
+
+
+if __name__ == "__main__":
+    challenge = Rainbow(None, None)
+    challenge.run()
