@@ -10,6 +10,7 @@ class Rainbow:
         self.core_module = core_module
         self.ticks = 0
         self.oled = oled
+        self.ex_ball = None
 
     def show_state(self):
         """ Show motor/aux config on OLED display """
@@ -32,4 +33,6 @@ class Rainbow:
     def run(self):
         """ Main Challenge method. Has to exist and is the
             start point for the threaded challenge. """
+        # self.ex_ball = example_ball.example_ball()
+        # self.ex_ball.main(self.core_module)
         example_ball.main(self.core_module)
