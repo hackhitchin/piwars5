@@ -53,14 +53,13 @@ class StreamProcessor(threading.Thread):
 
     def run(self):
         # This method runs in a separate thread
-        global colour
         while not self.terminated:
             # Wait for an image to be written to the stream
             if self.event.wait(1):
                 try:
                     # Read the image and do some processing on it
                     self.stream.seek(0)
-                    self.ProcessImage(self.stream.array, colour)
+                    self.ProcessImage(self.stream.array)
                 finally:
                     # Reset the stream and event
                     self.stream.seek(0)
@@ -68,7 +67,7 @@ class StreamProcessor(threading.Thread):
                     self.event.clear()
 
     # Image processing function
-    def ProcessImage(self, image, colour):
+    def ProcessImage(self, image):
         # View the original image seen by the camera.
         # Crop the image down to just the bit with the arena in
         image = image[100:240, 0:320]
@@ -89,7 +88,7 @@ class StreamProcessor(threading.Thread):
         #    cv2.imshow('cvtColour', image)
         #    cv2.waitKey(0)
 
-        if colour == "red":
+        if self.colour == "red":
             imrange = cv2.inRange(
                 image,
                 # numpy.array((113, 96, 64)),
@@ -97,7 +96,7 @@ class StreamProcessor(threading.Thread):
                 numpy.array((0, 100, 50)),
                 numpy.array((10, 255, 255))
             )
-        elif colour == 'yellow':
+        elif self.colour == 'yellow':
             imrange = cv2.inRange(
                 image,
                 # numpy.array((15, 85, 64)),
@@ -105,7 +104,7 @@ class StreamProcessor(threading.Thread):
                 numpy.array((20, 100, 75)),
                 numpy.array((40, 255, 255))
             )
-        elif colour == "green":
+        elif self.colour == "green":
             imrange = cv2.inRange(
                 image,
                 # numpy.array((50, 96, 64)),
@@ -113,7 +112,7 @@ class StreamProcessor(threading.Thread):
                 numpy.array((50, 100, 50)),
                 numpy.array((80, 255, 255))
             )
-        elif colour == 'blue':
+        elif self.colour == 'blue':
             imrange = cv2.inRange(
                 image,
                 numpy.array((90, 150, 64)),
@@ -190,8 +189,8 @@ class StreamProcessor(threading.Thread):
                 # We've seen a ball of a colour - is it what we want?
                 if not (self.colour in self.arenacolours):
                     # It's a new colour
-                    self.arenacolours.append(colour)
-                    lookingatcolour = colour
+                    self.arenacolours.append(self.colour)
+                    self.lookingatcolour = self.colour
                     # Have we found all four colours?
                     if len(self.arenacolours) == 4:
                         print('Lets remember these for next time')
@@ -203,7 +202,7 @@ class StreamProcessor(threading.Thread):
                             ('I found all the colours, now '
                              'm looking at {0} hunting a {1}'
                              ).format(
-                                lookingatcolour,
+                                self.lookingatcolour,
                                 self.challengecolours[0]
                             )
                         )
@@ -211,14 +210,14 @@ class StreamProcessor(threading.Thread):
                         self.colour = self.challengecolours[0]
                         self.state = State.HUNTING
                         time.sleep(2)
-            elif self.state == State.ORIENTING and lookingatcolour == '':
+            elif self.state == State.ORIENTING and self.lookingatcolour == '':
                 # If we can see a colour, set lookingatcolour and go hunting
                 print(('Im looking at a {0} ball,'
                       ' lets hunt a {1} one').format(
                     self.colour,
                     self.challengecolours[0])
                 )
-                self.lookingatcolour = colour
+                self.lookingatcolour = self.colour
                 self.colourindex = 0
                 self.colour = self.challengecolours[0]
                 self.state = State.HUNTING
@@ -253,14 +252,14 @@ class StreamProcessor(threading.Thread):
                     direction = direction * 5
                     if direction > 0.0:
                         # Turn right
-                        print('Turn right for %s' % colour)
+                        print('Turn right for %s' % self.colour)
                         driveLeft = speed
                         driveRight = speed * (1.0 - direction)
                         if driveRight < hunt_reverse:
                             driveRight = hunt_reverse
                     else:
                         # Turn left
-                        print('Turn left for %s' % colour)
+                        print('Turn left for %s' % self.colour)
                         driveLeft = speed * (1.0 + direction)
                         driveRight = speed
                         if driveLeft < hunt_reverse:

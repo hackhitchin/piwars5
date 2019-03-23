@@ -1,6 +1,12 @@
-#!/usr/bin/env python
-# coding: Latin
-import example_ball
+import os
+import time
+import sys
+import core
+import RPi.GPIO as GPIO
+import picamera
+from stream_processor import StreamProcessor
+from stream_processor import State
+from image_capture import ImageCapture
 
 
 class Rainbow:
@@ -10,7 +16,8 @@ class Rainbow:
         self.core_module = core_module
         self.ticks = 0
         self.oled = oled
-        self.ex_ball = None
+        self.camera = None
+        self.captureThread = None
 
     def show_state(self):
         """ Show motor/aux config on OLED display """
@@ -29,10 +36,82 @@ class Rainbow:
     def stop(self):
         """Simple method to stop the RC loop"""
         self.killed = True
+        if self.processor:
+            self.processor.state = State.FINISHED
 
     def run(self):
         """ Main Challenge method. Has to exist and is the
             start point for the threaded challenge. """
-        # self.ex_ball = example_ball.example_ball()
-        # self.ex_ball.main(self.core_module)
-        example_ball.main(self.core_module)
+        # Startup sequence
+        # Load our previously learned arena colour order
+        self.camera = picamera.PiCamera()
+        self.processor = StreamProcessor(self.core_module, self.camera)
+        print('Wait ...')
+        time.sleep(2)
+
+        filename = "arenacolours.txt"
+        if os.path.isfile(filename):
+            with open(filename) as f:
+                content = f.readlines()
+            if len(content) > 0:
+                self.processor.arenacolours = [x.strip() for x in content]
+                self.processor.state = State.ORIENTING
+            f.close()
+
+        if self.core_module is None:
+            # Initialise GPIO
+            GPIO.setwarnings(False)
+            GPIO.setmode(GPIO.BCM)
+
+            # Instantiate CORE / Chassis module and store in the launcher.
+            self.core_module = core.Core(GPIO)
+            # Limit motor speeds in AutoMode
+            self.core_module.set_speed_factor(0.6)  # 0.6 on old motors
+            self.core_module.enable_motors(True)
+
+        # wait for the user to enable motors
+        while not self.core_module.motors_enabled():
+            time.sleep(0.25)
+
+        # Setup the camera
+        frameRate = 30  # Camera image capture frame rate
+        self.camera.resolution = (
+            self.processor.imageWidth,
+            self.processor.imageHeight)
+        self.camera.framerate = frameRate
+        self.camera.awb_mode = 'off'
+
+        # Load the exposure calibration
+        filename = "rbgains.txt"
+        redgain = 1.0  # Default Gain values
+        bluegain = 1.0
+        if os.path.isfile(filename):
+            with open(filename) as f:
+                content = f.readlines()
+            content = [x.strip() for x in content]
+            redgain = float(content[0][2:])
+            bluegain = float(content[1][2:])
+            self.camera.awb_gains = (redgain, bluegain)
+            f.close()
+
+        self.captureThread = ImageCapture(self.camera, self.processor)
+
+        try:
+            # Loop indefinitely until we are no longer running
+            while self.processor.state != State.FINISHED:
+                # Wait for the interval period
+                #
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            print("User shutdown\n")
+        except Exception as e:
+            print(e)
+
+        self.core_module.enable_motors(False)
+        self.processor.state = State.FINISHED
+        self.captureThread.join()
+        self.processor.terminated = True
+        self.processor.join()
+        del self.camera
+        self.camera = None
+        print("Program terminated")
