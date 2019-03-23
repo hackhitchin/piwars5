@@ -19,6 +19,7 @@ class StreamProcessor(threading.Thread):
 
     def __init__(self, core_module, camera):
         self.core_module = core_module
+        self.state = State.LEARNING  # Default state
         super(StreamProcessor, self).__init__()
         self.camera = camera
         self.stream = picamera.array.PiRGBArray(self.camera)
@@ -26,13 +27,15 @@ class StreamProcessor(threading.Thread):
         self.terminated = False
         self.start()
         self.begin = 0
-        self.state = State.LEARNING  # Default state
 
         # Auto drive settings
         self.autoMaxPower = 1.0  # Maximum output in automatic mode
         self.autoMinPower = 0.6  # Minimum output in automatic mode
         self.autoMinArea = 100  # Smallest target to move towards
-        self.autoMaxArea = 25000  # Largest target to move towards
+        # full image
+        # self.autoMaxArea = 55000  # Largest target to move towards
+        # Cropped Image
+        self.autoMaxArea = 40000  # Largest target to move towards
         # Target size at which we use the maximum allowed output
         self.autoFullSpeedArea = 5000
 
@@ -53,7 +56,7 @@ class StreamProcessor(threading.Thread):
 
     def run(self):
         # This method runs in a separate thread
-        while not self.terminated:
+        while not self.terminated and self.state != State.FINISHED:
             # Wait for an image to be written to the stream
             if self.event.wait(1):
                 try:
@@ -142,8 +145,8 @@ class StreamProcessor(threading.Thread):
         area = 0
         for (idx, contour) in enumerate(contours):
             x, y, w, h = cv2.boundingRect(contour)
-            # cx = x + (w / 2)
-            # cy = y + (h / 2)
+            cx = x + (w / 2)
+            cy = y + (h / 2)
             area = w * h
             contourarea = cv2.contourArea(contour)
 
@@ -161,7 +164,7 @@ class StreamProcessor(threading.Thread):
                 squareness = cont_squareness
 
         if area > 0:
-            ball = [x, y, area]
+            ball = [cx, cy, area]
         else:
             ball = None
         # Set drives or report ball status
@@ -209,7 +212,7 @@ class StreamProcessor(threading.Thread):
                         self.colourindex = 0
                         self.colour = self.challengecolours[0]
                         self.state = State.HUNTING
-                        time.sleep(2)
+                        # time.sleep(2)
             elif self.state == State.ORIENTING and self.lookingatcolour == '':
                 # If we can see a colour, set lookingatcolour and go hunting
                 print(('Im looking at a {0} ball,'
@@ -221,7 +224,7 @@ class StreamProcessor(threading.Thread):
                 self.colourindex = 0
                 self.colour = self.challengecolours[0]
                 self.state = State.HUNTING
-                time.sleep(2)
+                # time.sleep(2)
             elif self.state == State.HUNTING:
                 if area < self.autoMinArea:
                     print('Too small / far')
@@ -302,12 +305,13 @@ class StreamProcessor(threading.Thread):
         #  colours on each tick; otherwise focus on the coloru we're hunting
         if self.state == State.LEARNING or self.state == State.ORIENTING:
             self.colour = self.challengecolours[self.tickInt]
-        print('{0} ({1}) {2:4.1f}, {3:4.1f} - {4}, {5} > {6}'.format(
+        print('{0} ({1}) {2:4.1f}, {3:4.1f} - {4}, x {5}, {6} > {7}'.format(
             self.state,
             asciiTick,
             driveLeft,
             driveRight,
             self.arenacolours,
+            ball[0] if ball else 0,
             self.lookingatcolour,
             self.colour)
         )

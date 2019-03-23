@@ -83,17 +83,17 @@ class Rainbow:
         self.camera.awb_mode = 'off'
 
         # Load the exposure calibration
+        redgain = 1.5  # Default Gain values
+        bluegain = 1.5
         filename = "rbgains.txt"
-        redgain = 1.0  # Default Gain values
-        bluegain = 1.0
         if os.path.isfile(filename):
             with open(filename) as f:
                 content = f.readlines()
             content = [x.strip() for x in content]
             redgain = float(content[0][2:])
             bluegain = float(content[1][2:])
-            self.camera.awb_gains = (redgain, bluegain)
             f.close()
+        self.camera.awb_gains = (redgain, bluegain)
 
         self.captureThread = ImageCapture(self.camera, self.processor)
 
