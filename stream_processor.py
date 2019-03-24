@@ -5,6 +5,7 @@ import cv2
 import numpy
 from enum import Enum
 import time
+from core import I2C_Lidar
 
 
 class State(Enum):
@@ -20,6 +21,7 @@ class StreamProcessor(threading.Thread):
     def __init__(self, core_module, camera):
         self.core_module = core_module
         self.state = State.LEARNING  # Default state
+        self.reversing = False
         super(StreamProcessor, self).__init__()
         self.camera = camera
         self.stream = picamera.array.PiRGBArray(self.camera)
@@ -225,7 +227,7 @@ class StreamProcessor(threading.Thread):
                 self.colour = self.challengecolours[0]
                 self.state = State.HUNTING
                 # time.sleep(2)
-            elif self.state == State.HUNTING:
+            elif self.state == State.HUNTING and self.reversing == False:
                 if area < self.autoMinArea:
                     print('Too small / far')
                     driveLeft = self.autoMinPower
@@ -244,6 +246,7 @@ class StreamProcessor(threading.Thread):
                         print('Now looking for %s ball' % (self.colour))
                         driveLeft = backoff
                         driveRight = backoff
+                        self.reversing = True
                 else:
                     if area < self.autoFullSpeedArea:
                         speed = 1.0
@@ -267,6 +270,14 @@ class StreamProcessor(threading.Thread):
                         driveRight = speed
                         if driveLeft < hunt_reverse:
                             driveLeft = hunt_reverse
+            elif self.state == State.HUNTING and self.reversing == True:
+                # Drive backwards until front distance > 600mm
+                lidar_dev = self.core.lidars[
+                    str(I2C_Lidar.LIDAR_FRONT)
+                ]
+                d_front = lidar_dev['device'].get_distance()
+                if d_front > 600:
+                    self.reversing = False                
         else:
             # Figure out which direction to seek from arenacolours
             if (self.state == State.HUNTING and
@@ -289,14 +300,14 @@ class StreamProcessor(threading.Thread):
             asciiTick = "|   "
         elif self.tickInt == 1:
             asciiTick = " |  "
-            if (driveLeft != backoff):
-                driveLeft = 0
-                driveRight = 0
         elif self.tickInt == 2:
             asciiTick = "  | "
         else:
             asciiTick = "   |"
-            if (driveLeft != backoff):
+
+        if asciiTick % 2 == 1:
+            # Blip motors, except if reversing
+            if (self.reversing == False):
                 driveLeft = 0
                 driveRight = 0
 
