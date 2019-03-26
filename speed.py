@@ -1,6 +1,7 @@
 from core import I2C_Lidar
 import time
 import PID
+import numpy as np
 
 
 class Speed:
@@ -10,9 +11,10 @@ class Speed:
         self.oled = oled
         self.killed = False
         self.core = core_module
-        self.time_limit = 6  # How many seconds before auto cutoff
+        self.time_limit = 20  # How many seconds before auto cutoff
         # self.pidc = PID.PID(1.3, 0.4, 0.6)  # 2wd speed test Initial Settings
-        self.pidc = PID.PID(1.5, 0.4, 0.8)
+        self.pidc = PID.PID(1.5, 0.4, 0.8) #works at 20% constant speed
+        # self.pidc = PID.PID(1.2, 0.4, 0.9)
         if control_mode is None:
             self.control_mode = "PID"
         else:
@@ -20,12 +22,16 @@ class Speed:
         self.deadband = 50  # size of deadband in mm
 
         # self.pidc = PID.PID(1.0, 0.0, 0.0)
-        self.threshold_side = 400.0
+        self.threshold_side = 600.0
         # 20mm Small distance, basically
         # its just going to hit and we need to stop
-        self.threshold_front = 20.0
+        self.threshold_front = 100.0
 
         self.off_the_line_time = 0.25
+
+        self.front_high_speed_threshold = 6000
+        self.front_low_speed_threshold = 500
+        self.low_speed_factor = 0.70
 
     def stop(self):
         """Simple method to stop the RC loop"""
@@ -69,16 +75,17 @@ class Speed:
 
         return leftspeed, rightspeed
 
-    def decide_speeds_pid(self, distance_left, distance_right):
+    def decide_speeds_pid(self, distance_left, distance_right, distance_front):
         """ Use the pid  method to decide motor speeds. """
         distance_offset = distance_left - distance_right
         speed_mid = 1  # 0.3 safe
         speed_range = 1  # -0.2 - backwards motors?
         distance_range = 150.0  # was 50
-        speed_max = 1.0
+        # speed_max = 1.0
 
         ignore_d = False
         self.pidc.update(distance_offset, ignore_d)
+        # self.pidc.update(pow(abs(distance_offset), 1.06)*np.sign(distance_offset)*0.75, ignore_d)
 
         deviation = self.pidc.output / distance_range
         c_deviation = max(-1.0, min(1.0, deviation))
@@ -92,18 +99,46 @@ class Speed:
         #     rightspeed = speed_max
         # else:
         # Slow one motor more than we speed the other one up
+
+        # Martin hax: if the front wall is close, apply more steering input
+        self.front_high_speed_threshold = 600
+        self.front_low_speed_threshold = 250
+        new_factor = 1.0
+        if distance_front < self.front_high_speed_threshold:
+            # Variable speed variance
+
+            self.high_steer_factor = 1.30
+
+            xp = [self.front_low_speed_threshold,
+                  self.front_high_speed_threshold]
+            fp = [self.high_steer_factor, 1.0]
+            new_factor = np.interp(distance_front, xp, fp)
+
+            if new_factor < 1.0:
+                new_factor = 1.0
+
+        c_deviation *= new_factor
+
         if (c_deviation > 0):
             leftspeed = (speed_mid - (c_deviation * speed_range))
-            rightspeed = (speed_mid + (c_deviation * speed_range * 0.8))
+            rightspeed = (speed_mid + (c_deviation * speed_range * 1.0))
         else:
-            leftspeed = (speed_mid - (c_deviation * speed_range * 0.8))
+            leftspeed = (speed_mid - (c_deviation * speed_range * 1.0))
             rightspeed = (speed_mid + (c_deviation * speed_range))
 
-        rightspeed *= 0.8  # FUDGE the right motors slower a bit because they are stronger
+
+
+        # if distance_front < 250.0:
+        #     if distance_left < distance_Right:
+        #         leftspeed = 0.0
+        #     else:
+        #         rightspeed = 0.0
+
+        # rightspeed *= 0.8  # FUDGE the right motors slower a bit because they are stronger
 
         return leftspeed, rightspeed
 
-    def decide_speeds(self, distance_left, distance_right, time_delta):
+    def decide_speeds(self, distance_left, distance_right, distance_front, time_delta):
         """ Set up return values at the start"""
         leftspeed = 0
         rightspeed = 0
@@ -114,7 +149,7 @@ class Speed:
             )
         elif self.control_mode == "PID":
             leftspeed, rightspeed = self.decide_speeds_pid(
-                distance_left, distance_right
+                distance_left, distance_right, distance_front
             )
 
         # Linearly increase motor speeds off the line
@@ -215,6 +250,7 @@ class Speed:
                 leftspeed, rightspeed = self.decide_speeds(
                     distance_left,
                     distance_right,
+                    distance_front,
                     time_delta
                 )
 
@@ -227,6 +263,9 @@ class Speed:
                 print("Motors %f, %f" % (leftspeed, rightspeed))
 
                 time.sleep(0.1)
+
+        if time_delta < self.time_limit:
+            print("Timeout")
 
         # Turn motors off and set into neutral (stops the vehicle moving)
         print("Appling Brakes")

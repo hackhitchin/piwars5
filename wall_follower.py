@@ -3,6 +3,7 @@ import core
 from core import I2C_Lidar
 import time
 import PID
+import numpy as np
 # import sounds
 
 ''' 10-2-2017: This code is completely untested; don't be surprised when it
@@ -42,10 +43,12 @@ class WallFollower:
         self.speed_range = -70
 
         self.front_high_speed_threshold = 600
+        self.front_low_speed_threshold = 250
         self.low_speed_factor = 0.70
 
         # PID class
-        self.pidc = PID.PID(0.5, 0.0, 0.1)
+        # self.pidc = PID.PID(0.5, 0.0, 0.1)  # Maze values
+        self.pidc = PID.PID(0.5, 0.0, 0.05)  # Speed run values
 
     def stop(self):
         """Simple method to stop the RC loop"""
@@ -90,8 +93,26 @@ class WallFollower:
                 rightspeed = (self.speed_mid - (c_deviation * self.speed_range))
 
             if d_front < self.front_high_speed_threshold:
-                leftspeed *= self.low_speed_factor
-                rightspeed *= self.low_speed_factor
+                # Variable speed variance
+                self.front_high_speed_threshold = 600
+                self.front_low_speed_threshold = 250
+                self.low_speed_factor = 0.70
+
+                xp = [self.front_low_speed_threshold,
+                      self.front_high_speed_threshold]
+                fp = [self.low_speed_factor, 1.0]
+                new_factor = np.interp(d_front, xp, fp)
+
+                if new_factor > 1.0:
+                    new_factor = 1.0
+                if new_factor < self.low_speed_factor:
+                    new_factor = self.low_speed_factor
+                leftspeed *= new_factor
+                rightspeed *= new_factor
+
+                # Simple speed variance
+                # leftspeed *= self.low_speed_factor
+                # rightspeed *= self.low_speed_factor
 
             if (leftspeed < rightspeed):
                 print("Turning left")
