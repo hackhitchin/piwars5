@@ -212,6 +212,18 @@ class Core():
         self.motor['front_left'].decrease_speed_factor(increment)
         self.motor['front_right'].decrease_speed_factor(increment)
 
+    def increase_motor_acceleration_time(self, increment=0.1):
+        self.motor['left'].increase_motor_acceleration_time(increment)
+        self.motor['right'].increase_motor_acceleration_time(increment)
+        self.motor['front_left'].increase_motor_acceleration_time(increment)
+        self.motor['front_right'].increase_motor_acceleration_time(increment)
+
+    def decrease_motor_acceleration_time(self, increment=0.1):
+        self.motor['left'].decrease_motor_acceleration_time(increment)
+        self.motor['right'].decrease_motor_acceleration_time(increment)
+        self.motor['front_left'].decrease_motor_acceleration_time(increment)
+        self.motor['front_right'].decrease_motor_acceleration_time(increment)
+
     def cleanup(self):
         self.motor['left'].cleanup()  # stop the PWM output
         self.motor['right'].cleanup()  # stop the PWM output

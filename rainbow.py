@@ -39,6 +39,8 @@ class Rainbow:
         self.killed = True
         if self.processor:
             self.processor.state = State.FINISHED
+        if self.captureThread:
+            self.captureThread.stop()
 
     def run(self):
         """ Main Challenge method. Has to exist and is the

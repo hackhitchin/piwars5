@@ -13,6 +13,7 @@ import speed
 import wall_follower
 import rainbow
 import tof_calibrate
+import whitebalance
 
 from PIL import Image
 
@@ -44,6 +45,8 @@ class Mode(Enum):
     MODE_RAINBOW = 7
     MODE_TOF_CALIBRATE = 8
     MODE_KILL_PROCESS = 9
+    MODE_WHITE_CALIBRATE = 10
+    MODE_WIPE_RAINBOW_MEMORY = 11
 
 
 class launcher:
@@ -78,6 +81,8 @@ class launcher:
             (Mode.MODE_SPEED, "Speed"),
             # (Mode.MODE_SPEED_LINEAR, "Linear Speed"),
             (Mode.MODE_RAINBOW, "Rainbow"),
+            (Mode.MODE_WIPE_RAINBOW_MEMORY, "Wipe Rainbow Memory"),
+            (Mode.MODE_WHITE_CALIBRATE, "Camera Calibrate"),
             (Mode.MODE_TOF_CALIBRATE, "TOF Calibrate")
         ))
         self.current_mode = Mode.MODE_NONE
@@ -203,6 +208,12 @@ class launcher:
         elif self.menu_mode == Mode.MODE_TOF_CALIBRATE:
             self.start_tof_calibrate_mode()
             logging.info("TOF Calibrate Mode")
+        elif self.menu_mode == Mode.MODE_WHITE_CALIBRATE:
+            self.start_white_calibrate_mode()
+            logging.info("White Calibrate Mode")
+        elif self.menu_mode == Mode.MODE_WIPE_RAINBOW_MEMORY:
+            self.start_clear_rainbow_memory()
+            logging.info("Wipe rainbow memory Mode")
 
     def menu_up(self):
         self.menu_mode = self.get_previous_mode(self.menu_mode)
@@ -881,6 +892,36 @@ class launcher:
         self.challenge_thread.start()
         logging.info("TOF Calibrate thread running")
 
+    def start_white_calibrate_mode(self):
+        # Kill any previous Challenge / White balance calibration, yada yada as above
+        self.stop_threads()
+
+        self.current_mode = Mode.MODE_WHITE_CALIBRATE
+
+        logging.info("Running white Calibrate mode")
+
+        wb = whitebalance.WhiteBalance()
+        wb.run()
+
+        self.current_mode = Mode.MODE_WHITE_CALIBRATE
+
+        logging.info("White Calibrate mode finished")
+
+    def start_clear_rainbow_memory(self):
+        # Kill any previous Challenge / wipe rainbow stored RGB order, yada yada as above
+        self.stop_threads()
+
+        self.current_mode = Mode.MODE_WIPE_RAINBOW_MEMORY
+
+        logging.info("Running white Calibrate mode")
+
+        f = open('arenacolours.txt', 'r+')
+        f.truncate(0)  # need '0' when using r+
+
+        self.current_mode = Mode.MODE_WIPE_RAINBOW_MEMORY
+
+        logging.info("White Calibrate mode finished")
+
     def stop(self):
         """ Stop the entire program safely. """
         launcher.controller = None
@@ -994,11 +1035,11 @@ class launcher:
                             if 'l1' in self.controller.presses:
                                 self.core.decrease_speed_factor()
 
-                            # Increase or Decrease motor speed factor
-                            # if 'r2' in self.controller.presses:
-                            #     self.core.increase_speed_factor()
-                            # if 'l2' in self.controller.presses:
-                            #     self.core.decrease_speed_factor()
+                            # Set default motor speed factors
+                            if 'r2' in self.controller.presses:
+                                self.core.set_speed_factor(1.0)
+                            if 'l2' in self.controller.presses:
+                                self.core.set_speed_factor(0.2)
                             # if 'ps4_pad' in self.controller.presses:
                             #     self.core.decrease_speed_factor()
 
@@ -1011,11 +1052,11 @@ class launcher:
                                 time.sleep(1.0)
                                 self.core.fire_gun(30)
 
-                            # Move turret up/down
-                            # if 'triangle' in self.controller.presses:
-                            #     self.core.move_turret_increment(10)
-                            # if 'cross' in self.controller.presses:
-                            #     self.core.move_turret_increment(-10)
+                            # Increase or Decrease accelertion time
+                            if 'triangle' in self.controller.presses:
+                                self.core.increase_motor_acceleration_time()
+                            if 'cross' in self.controller.presses:
+                                self.core.decrease_motor_acceleration_time()
 
                             # Show current challenge state if we press buttons
                             if self.challenge:
