@@ -28,9 +28,9 @@ class Motor():
         self.pwm_pin = pwm_pin
         self.enabled = enabled  # Disabled by default by
         self.pwm_frequency = pwm_frequency
-        self.set_full_accelleration_time = 0.0  # # zero means instant
+        self.full_accelleration_time = 0.0  # # zero means instant
         self.percent_change_per_interval = 0.0  # zero means instant
-        self.set_full_accelleration_time(self.set_full_accelleration_time)
+        self.set_full_accelleration_time(self.full_accelleration_time)
 
         # Setup the GPIO pins as OUTPUTS
         self.GPIO.setup(pwm_pin, self.GPIO.OUT)
@@ -93,12 +93,26 @@ class Motor():
     def increase_motor_acceleration_time(self, increment=0.1):
         """ Increase acceleration time """
         new_value = self.get_full_accelleration_time() + increment
+
+        if new_value > 5.0:
+            new_value = 5.0
+        elif new_value < 0.0:
+            new_value = 0.0
+
         self.set_full_accelleration_time(new_value)
+        print ("New accelleration time %0.1f" % (new_value))
 
     def decrease_motor_acceleration_time(self, increment=0.1):
         """ Decrease acceleration time """
         new_value = self.get_full_accelleration_time() - increment
+
+        if new_value > 5.0:
+            new_value = 5.0
+        elif new_value < 0.0:
+            new_value = 0.0
+
         self.set_full_accelleration_time(new_value)
+        print ("New accelleration time %0.1f" % (new_value))
 
     def set_neutral(self, braked=False):
         """ Send neutral to the motor IMEDIATELY. """
@@ -177,14 +191,14 @@ class Motor():
         self.PWM.ChangeDutyCycle(dutycycle)
 
     def get_full_accelleration_time(self):
-        return self.set_full_accelleration_time
+        return self.full_accelleration_time
 
     def set_full_accelleration_time(self, time_in_seconds):
         """ Set the time it should take to
         accellerate from zero to 100% in seconds. """
         if time_in_seconds < 0.0:
             time_in_seconds = 0.0  # cap to min
-        self.set_full_accelleration_time = time_in_seconds
+        self.full_accelleration_time = time_in_seconds
         if time_in_seconds == 0.0:
             self.percent_change_per_interval = 0.0
         else:

@@ -548,6 +548,46 @@ class launcher:
              x_offset + 22.309, y_offset + 12.109 * -1.0),
             fill=1)
 
+    def draw_white_balance(self, x_offset, y_offset):
+        # 2x triangles indicating menu direction
+        self.oled.canvas.polygon(
+            ((x_offset + 0.0, y_offset + 0.0 * -1.0),
+             (x_offset + 0.0, y_offset + 45.0 * -1.0),
+             (x_offset + 45.0, y_offset + 45.0 * -1.0),
+             (x_offset + 0.0, y_offset + 0.0 * -1.0)),
+            outline=1,
+            fill=0)
+        self.oled.canvas.polygon(
+            ((x_offset + 0.0, y_offset + 0.0 * -1.0),
+             (x_offset + 45.0, y_offset + 0.0 * -1.0),
+             (x_offset + 45.0, y_offset + 45.0 * -1.0),
+             (x_offset + 0.0, y_offset + 0.0 * -1.0)),
+            outline=1,
+            fill=1)
+
+    def draw_bin(self, x_offset, y_offset):
+        # 2x triangles indicating menu direction
+        self.oled.canvas.polygon(
+            ((x_offset + 11.25, y_offset + 0.0 * -1.0),
+             (x_offset + 33.75, y_offset + 0.0 * -1.0),
+             (x_offset + 40.0, y_offset + 25.0 * -1.0),
+             (x_offset + 5.0, y_offset + 25.0 * -1.0),
+             (x_offset + 11.25, y_offset + 0.0 * -1.0)),
+            outline=1,
+            fill=1)
+        self.oled.canvas.polygon(
+            ((x_offset + 5.0, y_offset + 32.0 * -1.0),
+             (x_offset + 40.0, y_offset + 32.0 * -1.0),
+             (x_offset + 40.0, y_offset + 35.0 * -1.0),
+             (x_offset + 33.75, y_offset + 35.0 * -1.0),
+             (x_offset + 33.75, y_offset + 40.0 * -1.0),
+             (x_offset + 11.25, y_offset + 40.0 * -1.0),
+             (x_offset + 11.25, y_offset + 35.0 * -1.0),
+             (x_offset + 5.0, y_offset + 35.0 * -1.0),
+             (x_offset + 5.0, y_offset + 32.0 * -1.0)),
+            outline=1,
+            fill=1)
+
     def draw_icon_rect(self):
         self.oled.canvas.line(
             (39.0, 12.0,
@@ -663,35 +703,47 @@ class launcher:
                 y_offset = 35.0 + 24.219 / 2.0
                 self.draw_rainbow(x_offset, y_offset)
             elif self.menu_mode == Mode.MODE_RC:
-                # Draw Speed logo
+                # Draw RC logo
                 self.draw_icon_rect()
                 x_offset = 64.0 - 45.0 / 2.0
                 y_offset = 35.0 + 14.942 / 2.0
                 self.draw_rc(x_offset, y_offset)
             elif self.menu_mode == Mode.MODE_TOF_CALIBRATE:
-                # Draw Speed logo
+                # Draw tof calibrate logo
                 self.draw_icon_rect()
                 x_offset = 64.0 - 45.0 / 2.0
                 y_offset = (35.0 + 3.131) + (12.110 + 3.131) / 2.0
                 self.draw_tof_calib(x_offset, y_offset)
             elif self.menu_mode == Mode.MODE_KILL_PROCESS:
-                # Draw Rainbow logo
+                # Draw CMD logo
                 self.draw_icon_rect()
                 x_offset = 64.0 - 24.219 / 2.0
                 y_offset = 35.0 + 24.219 / 2.0
                 self.draw_cmd(x_offset, y_offset)
             elif self.menu_mode == Mode.MODE_POWER:
-                # Draw Rainbow logo
+                # Draw Power off logo
                 self.draw_icon_rect()
                 x_offset = 64.0 - 24.219 / 2.0
                 y_offset = 35.0 + 24.219 / 2.0
                 self.draw_pwr(x_offset, y_offset)
             elif self.menu_mode == Mode.MODE_REBOOT:
-                # Draw Rainbow logo
+                # Draw Reboot logo
                 self.draw_icon_rect()
                 x_offset = 64.0 - 24.219 / 2.0
                 y_offset = 35.0 + 24.219 / 2.0
                 self.draw_reboot(x_offset, y_offset)
+            elif self.menu_mode == Mode.MODE_WHITE_CALIBRATE:
+                # Draw white balance logo
+                self.draw_icon_rect()
+                x_offset = 64.0 - 45.0 / 2.0
+                y_offset = 35.0 + 45.0 / 2.0
+                self.draw_white_balance(x_offset, y_offset)
+            elif self.menu_mode == Mode.MODE_WIPE_RAINBOW_MEMORY:
+                # Draw white balance logo
+                self.draw_icon_rect()
+                x_offset = 64.0 - 45.0 / 2.0
+                y_offset = 35.0 + 45.0 / 2.0
+                self.draw_bin(x_offset, y_offset)
             else:
                 # Draw rect around current selection.
                 # NOTE: Has to be done BEFORE text below
