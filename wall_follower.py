@@ -19,8 +19,9 @@ class WallFollower:
         self.killed = False
         self.core = core_module
         self.oled = oled
+        self.loop_sleep = 0.1
         self.ticks = 0
-        self.tick_time = 0.1  # How many seconds per control loop
+        self.tick_time = self.loop_sleep  # How many seconds per control loop
         self.time_limit = 30  # How many seconds to run for
         self.follow_left = False  # Start by following RIGHT wall
         self.switches_count = 0
@@ -63,9 +64,11 @@ class WallFollower:
         if self.oled is not None:
             # Format the speed to 2dp
             if self.core.motors_enabled():
-                message = "SPEED: %0.2f" % (self.core.get_speed_factor())
+                message = "SPEED: %0.2f" % (
+                    self.core.get_speed_factor())
             else:
-                message = "SPEED: NEUTRAL (%0.2f)" % (self.core.get_speed_factor())
+                message = "SPEED: NEUTRAL (%0.2f)" % (
+                    self.core.get_speed_factor())
 
             self.oled.cls()  # Clear Screen
             self.oled.canvas.text((10, 10), message, fill=1)
@@ -84,7 +87,7 @@ class WallFollower:
             deviation = self.pidc.output / self.distance_range
             c_deviation = max(-1.0, min(1.0, deviation))
 
-            #print("PID out: %f" % deviation)
+            # print("PID out: %f" % deviation)
 
             if self.follow_left:
                 leftspeed = (self.speed_mid - (c_deviation * self.speed_range))
@@ -142,40 +145,32 @@ class WallFollower:
         print("Starting maze run now...")
 
         tick_limit = self.time_limit / self.tick_time
-        #print("Tick limit %d" % (tick_limit))
+        # print("Tick limit %d" % (tick_limit))
         self.set_control_mode("PID")
 
         side_prox = 0
         prev_prox = 100  # Make sure nothing bad happens on startup
 
+        prev_distance_left = -1
+        prev_distance_front = -1
+        prev_distance_right = -1
+
         while not self.killed and self.ticks < tick_limit and side_prox != -1:
             prev_prox = side_prox
 
-            # New API
-            try:
-                lidar_dev = self.core.lidars[
-                    str(I2C_Lidar.LIDAR_RIGHT)
-                ]
-                d_left = lidar_dev['device'].get_distance()
-                #print("Left: %d" % (d_left))
-            except KeyError:
-                d_left = -1
-            try:
-                lidar_dev = self.core.lidars[
-                    str(I2C_Lidar.LIDAR_FRONT)
-                ]
-                d_front = lidar_dev['device'].get_distance()
-                #print("Front: %d" % (d_front))
-            except KeyError:
-                d_front = -1
-            try:
-                lidar_dev = self.core.lidars[
-                    str(I2C_Lidar.LIDAR_LEFT)
-                ]
-                d_right = lidar_dev['device'].get_distance()
-                #print("Right: %d" % (d_right))
-            except KeyError:
-                d_right = -1
+            # Get distanes left/right and front
+            d_left = self.core.get_distance(I2C_Lidar.LIDAR_LEFT)
+            d_front = self.core.get_distance(I2C_Lidar.LIDAR_FRONT)
+            d_right = self.core.get_distance(I2C_Lidar.LIDAR_RIGHT)
+
+            # Sanity checking distances read.
+            # If error, use previous good value.
+            if d_left == -1:
+                d_left = prev_distance_left
+            if d_front == -1:
+                d_front = prev_distance_front
+            if d_right == -1:
+                d_right = prev_distance_right
 
             # Which wall are we following?
             if self.follow_left:
@@ -186,14 +181,6 @@ class WallFollower:
             # Keep X times more distance from the
             # bot's front than from the side
             front_prox = d_front / self.front_cautious
-
-            # Have we fallen out of the end of the course?
-            # if d_left > 400 and d_right > 400 and d_front > 400:
-            #     print("*** EXIT CONDITION ***")
-            #     self.killed = True
-            #     break
-
-            # print("Distance is %d" % (side_prox))
 
             ignore_d = False
             # Have we crossed over the middle of the course?
@@ -237,15 +224,17 @@ class WallFollower:
             )
 
             self.core.throttle(leftspeed, rightspeed)
-            #print("Motors %0.2f, %0.2f" % (leftspeed, rightspeed))
-            # print("Are we dead?")
-            # print(self.killed)
-            # print("%d ticks" % (self.ticks))
-
             self.ticks = self.ticks + 1
-            time.sleep(0.1)
+            time.sleep(self.loop_sleep)
 
-        #print("Ticks %d" % self.ticks)
+            # Remember current distance values
+            # in case next loop gets errors
+            if d_left != -1:
+                prev_distance_left = d_left
+            if d_front != -1:
+                prev_distance_front = d_front
+            if d_right != -1:
+                prev_distance_right = d_right
 
         self.core.set_neutral(braked=False)
 

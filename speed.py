@@ -244,7 +244,7 @@ class Speed:
                 time.sleep(self.loop_sleep)
 
                 # Remember current distance values
-                # in case next loop gets error.gets
+                # in case next loop gets errors
                 if distance_left != -1:
                     prev_distance_left = distance_left
                 if distance_front != -1:
