@@ -185,6 +185,22 @@ class Core():
 
         self.enable_motors(False)
 
+    def get_distance(self, sensor):
+        distance = -1
+        try:
+            lidar_dev = self.lidars[str(sensor)]
+            distance = lidar_dev['device'].get_distance()
+            # print("Left: %d" % (distance_left))
+        except KeyError:
+            distance = -1
+
+        # Test for any suspiciously large distances and return
+        # "invalid" distance of -1 in all error states.
+        if distance > 3000:
+            distance = -1
+
+        return distance
+
     def get_speed_factor(self):
         speed_factor = (
             self.motor['left'].get_speed_factor() +

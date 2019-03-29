@@ -11,10 +11,12 @@ class Speed:
         self.oled = oled
         self.killed = False
         self.core = core_module
+        self.loop_sleep = 0.1
         self.time_limit = 20  # How many seconds before auto cutoff
         # self.pidc = PID.PID(1.3, 0.4, 0.6)  # 2wd speed test Initial Settings
-        # self.pidc = PID.PID(1.5, 0.4, 0.8) # works at 20% constant speed
-        self.pidc = PID.PID(0.5, 0.0, 0.05) # OK at 25% speed
+        # self.pidc = PID.PID(1.5, 0.4, 0.8)  # works at 20% constant speed
+        self.pidc = PID.PID(0.5, 0.0, 0.05)  # OK at 35% speed
+
         if control_mode is None:
             self.control_mode = "PID"
         else:
@@ -85,7 +87,6 @@ class Speed:
 
         ignore_d = False
         self.pidc.update(distance_offset, ignore_d)
-        # self.pidc.update(pow(abs(distance_offset), 1.06)*np.sign(distance_offset)*0.75, ignore_d)
 
         deviation = self.pidc.output / distance_range
         c_deviation = max(-1.0, min(1.0, deviation))
@@ -97,7 +98,7 @@ class Speed:
             # Variable speed variance
             xp = [self.front_low_speed_threshold,
                   self.front_high_speed_threshold]
-            fp = [self.low_speed_factor/self.core.get_speed_factor(), 1.0]
+            fp = [self.low_speed_factor / self.core.get_speed_factor(), 1.0]
             new_factor = np.interp(distance_front, xp, fp)
 
             if new_factor > 1.0:
@@ -110,24 +111,16 @@ class Speed:
             leftspeed = ((speed_mid * new_factor) - (c_deviation * speed_range * 1.0))
             rightspeed = ((speed_mid * new_factor) + (c_deviation * speed_range))
 
-            # Equal % drop but looses steering %
-            # leftspeed *= new_factor
-            # rightspeed *= new_factor
-
-
             print("{}  {}".format(leftspeed, rightspeed))
-
-        # if distance_front < 250.0:
-        #     if distance_left < distance_Right:
-        #         leftspeed = 0.0
-        #     else:
-        #         rightspeed = 0.0
-
-        # rightspeed *= 0.8  # FUDGE the right motors slower a bit because they are stronger
-
         return leftspeed, rightspeed
 
-    def decide_speeds(self, distance_left, distance_right, distance_front, time_delta):
+    def decide_speeds(
+        self,
+        distance_left,
+        distance_right,
+        distance_front,
+        time_delta
+    ):
         """ Set up return values at the start"""
         leftspeed = 0
         rightspeed = 0
@@ -155,9 +148,11 @@ class Speed:
         if self.oled is not None:
             # Format the speed to 2dp
             if self.core.motors_enabled():
-                message = "SPEED: %0.2f" % (self.core.get_speed_factor())
+                message = "SPEED: %0.2f" % (
+                    self.core.get_speed_factor())
             else:
-                message = "SPEED: NEUTRAL (%0.2f)" % (self.core.get_speed_factor())
+                message = "SPEED: NEUTRAL (%0.2f)" % (
+                    self.core.get_speed_factor())
 
             self.oled.cls()  # Clear Screen
             self.oled.canvas.text((10, 10), message, fill=1)
@@ -187,54 +182,47 @@ class Speed:
         soft_start_power = 0.5  # 50% power during soft start
         soft_start_time = 0.5  # seconds of soft start
 
+        prev_distance_left = -1
+        prev_distance_front = -1
+        prev_distance_right = -1
+
+        error_count_left = 0
+        error_count_front = 0
+        error_count_right = 0
+
         while not self.killed and time_delta < self.time_limit:
             # Calculate time delta FIRST so we can
             # pass it into the motor speed function.
             current_time = time.time()
             time_delta = current_time - start_time
             # print("{}".format(time_delta))
-            try:
-                lidar_dev = self.core.lidars[
-                    str(I2C_Lidar.LIDAR_LEFT)
-                ]
-                distance_left = lidar_dev['device'].get_distance()
-                # print("Left: %d" % (distance_left))
-            except KeyError:
-                distance_left = -1
-            try:
-                lidar_dev = self.core.lidars[
-                    str(I2C_Lidar.LIDAR_FRONT)
-                ]
-                distance_front = lidar_dev['device'].get_distance()
-                # print("Front: %d" % (distance_front))
-            except KeyError:
-                distance_front = -1
-            try:
-                lidar_dev = self.core.lidars[
-                    str(I2C_Lidar.LIDAR_RIGHT)
-                ]
-                distance_right = lidar_dev['device'].get_distance()
-                # print("Right: %d" % (distance_right))
-            except KeyError:
-                distance_right = -1
 
-            # Have we fallen out of the end of
-            # the course or nearing obstruction?
-            # if ((distance_left > self.threshold_side and
-            #    distance_right > self.threshold_side) or
-            #    distance_front < self.threshold_front):
-            #     print("Outside of speed run")
-            #     self.killed = True
-            #     break
+            # Get distanes left/right and front
+            distance_left = self.core.get_distance(I2C_Lidar.LIDAR_LEFT)
+            distance_front = self.core.get_distance(I2C_Lidar.LIDAR_FRONT)
+            distance_right = self.core.get_distance(I2C_Lidar.LIDAR_RIGHT)
+
+            # Sanity checking distances read.
+            # If error, use previous good value.
+            if distance_left == -1:
+                error_count_left += 1
+                distance_left = prev_distance_left
+            else:
+                error_count_left = 0
+
+            if distance_front == -1:
+                error_count_front += 1
+                distance_front = prev_distance_front
+            else:
+                error_count_front = 0
+
+            if distance_right == -1:
+                error_count_right += 1
+                distance_right = prev_distance_right
+            else:
+                error_count_right = 0
 
             if not self.killed:
-                # Report offset from centre
-                distance_offset = distance_left - distance_right
-                # print("Offset is %d (%d : %d)" % (distance_offset, distance_left, distance_right))
-
-                #if self.control_mode == "LINEAR":
-                #    self.deadband = (distance_left + distance_right) / 4.0
-
                 # Calculate motor speeds
                 leftspeed, rightspeed = self.decide_speeds(
                     distance_left,
@@ -251,15 +239,26 @@ class Speed:
                 self.core.throttle(leftspeed * 100.0, rightspeed * 100.0)
                 # print("Motors %f, %f" % (leftspeed, rightspeed))
 
-                time.sleep(0.1)
+                # Sleep small amount before next loop to
+                # stop asking sensors too many times per second.
+                time.sleep(self.loop_sleep)
+
+                # Remember current distance values
+                # in case next loop gets error.gets
+                if distance_left != -1:
+                    prev_distance_left = distance_left
+                if distance_front != -1:
+                    prev_distance_front = distance_front
+                if distance_right != -1:
+                    prev_distance_right = distance_right
 
         if time_delta < self.time_limit:
             print("Timeout")
 
         # Turn motors off and set into neutral (stops the vehicle moving)
         print("Appling Brakes")
-        #self.core.throttle(-50.0, -50.0)
-        #time.sleep(0.25)
+        # self.core.throttle(-50.0, -50.0)
+        # time.sleep(0.25)
         print("Neutral")
         self.core.enable_motors(False)
 
