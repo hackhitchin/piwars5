@@ -153,7 +153,7 @@ class Motor():
             self.set_neutral(braked=False)
             return
 
-        logging.info("{} Motor Speed: {}".format(self.motor_name, speed))
+        # logging.info("{} Motor Speed: {}".format(self.motor_name, speed))
         self.current_speed = speed  # Store current set speed
 
         # If speed is < 0.0, we are driving in reverse.

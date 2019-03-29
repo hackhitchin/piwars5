@@ -32,7 +32,8 @@ class WallFollower:
 
         # Keep X times more distance from the
         # bot's front than from the side
-        self.front_cautious = 3.5  # 2.5
+        # self.front_cautious = 3.5  # 2.5
+        self.front_cautious = 4.0  # 2.5
 
         # Known working speeds
         # speed_mid = 40 * self.exit_speed
@@ -47,8 +48,8 @@ class WallFollower:
         self.low_speed_factor = 0.70
 
         # PID class
-        # self.pidc = PID.PID(0.5, 0.0, 0.1)  # Maze values
-        self.pidc = PID.PID(0.5, 0.0, 0.05)  # Speed run values
+        self.pidc = PID.PID(0.5, 0.0, 0.1)  # Maze values
+        # self.pidc = PID.PID(0.5, 0.0, 0.05)  # Speed run values
 
     def stop(self):
         """Simple method to stop the RC loop"""
@@ -83,7 +84,7 @@ class WallFollower:
             deviation = self.pidc.output / self.distance_range
             c_deviation = max(-1.0, min(1.0, deviation))
 
-            print("PID out: %f" % deviation)
+            #print("PID out: %f" % deviation)
 
             if self.follow_left:
                 leftspeed = (self.speed_mid - (c_deviation * self.speed_range))
@@ -141,7 +142,7 @@ class WallFollower:
         print("Starting maze run now...")
 
         tick_limit = self.time_limit / self.tick_time
-        print("Tick limit %d" % (tick_limit))
+        #print("Tick limit %d" % (tick_limit))
         self.set_control_mode("PID")
 
         side_prox = 0
@@ -156,7 +157,7 @@ class WallFollower:
                     str(I2C_Lidar.LIDAR_RIGHT)
                 ]
                 d_left = lidar_dev['device'].get_distance()
-                print("Left: %d" % (d_left))
+                #print("Left: %d" % (d_left))
             except KeyError:
                 d_left = -1
             try:
@@ -164,7 +165,7 @@ class WallFollower:
                     str(I2C_Lidar.LIDAR_FRONT)
                 ]
                 d_front = lidar_dev['device'].get_distance()
-                print("Front: %d" % (d_front))
+                #print("Front: %d" % (d_front))
             except KeyError:
                 d_front = -1
             try:
@@ -172,7 +173,7 @@ class WallFollower:
                     str(I2C_Lidar.LIDAR_LEFT)
                 ]
                 d_right = lidar_dev['device'].get_distance()
-                print("Right: %d" % (d_right))
+                #print("Right: %d" % (d_right))
             except KeyError:
                 d_right = -1
 
@@ -192,7 +193,7 @@ class WallFollower:
             #     self.killed = True
             #     break
 
-            print("Distance is %d" % (side_prox))
+            # print("Distance is %d" % (side_prox))
 
             ignore_d = False
             # Have we crossed over the middle of the course?
@@ -236,7 +237,7 @@ class WallFollower:
             )
 
             self.core.throttle(leftspeed, rightspeed)
-            print("Motors %0.2f, %0.2f" % (leftspeed, rightspeed))
+            #print("Motors %0.2f, %0.2f" % (leftspeed, rightspeed))
             # print("Are we dead?")
             # print(self.killed)
             # print("%d ticks" % (self.ticks))
@@ -244,7 +245,7 @@ class WallFollower:
             self.ticks = self.ticks + 1
             time.sleep(0.1)
 
-        print("Ticks %d" % self.ticks)
+        #print("Ticks %d" % self.ticks)
 
         self.core.set_neutral(braked=False)
 
