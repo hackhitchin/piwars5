@@ -70,7 +70,7 @@ class Motor():
             self.speed_factor = 1.0
         elif self.speed_factor < 0.1:
             self.speed_factor = 0.1
-        print ("New speed factor %0.1f" % (self.speed_factor))
+        print ("New speed factor %0.2f" % (self.speed_factor))
 
     def increase_speed_factor(self, increment=0.05):
         self.speed_factor += increment
@@ -79,7 +79,7 @@ class Motor():
             self.speed_factor = 1.0
         elif self.speed_factor < 0.1:
             self.speed_factor = 0.1
-        print ("New speed factor %0.1f" % (self.speed_factor))
+        print ("New speed factor %0.2f" % (self.speed_factor))
 
     def decrease_speed_factor(self, increment=0.05):
         self.speed_factor -= increment
@@ -88,7 +88,7 @@ class Motor():
             self.speed_factor = 1.0
         elif self.speed_factor < 0.1:
             self.speed_factor = 0.1
-        print ("New speed factor %0.1f" % (self.speed_factor))
+        print ("New speed factor %0.2f" % (self.speed_factor))
 
     def increase_motor_acceleration_time(self, increment=0.1):
         """ Increase acceleration time """

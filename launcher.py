@@ -861,7 +861,7 @@ class launcher:
             style = None  # Default to whatever.
 
         # Set sensible speed
-        self.core.set_speed_factor(0.2)
+        self.core.set_speed_factor(0.35)
 
         # Inform user we are about to start RC mode
         logging.info("Entering into SPEED Mode")

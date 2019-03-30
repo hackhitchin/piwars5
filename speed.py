@@ -11,11 +11,13 @@ class Speed:
         self.oled = oled
         self.killed = False
         self.core = core_module
-        self.loop_sleep = 0.1
+        # self.loop_sleep = 0.1
+        self.loop_sleep = 0.05
         self.time_limit = 20  # How many seconds before auto cutoff
         # self.pidc = PID.PID(1.3, 0.4, 0.6)  # 2wd speed test Initial Settings
         # self.pidc = PID.PID(1.5, 0.4, 0.8)  # works at 20% constant speed
-        self.pidc = PID.PID(0.5, 0.0, 0.05)  # OK at 35% speed
+        self.pidc = PID.PID(0.5, 0.0, 0.035)  # OK at 35% speed
+        # self.pidc = PID.PID(0.5, 0.0, 0.025)  # Test at 35%
 
         if control_mode is None:
             self.control_mode = "PID"
@@ -31,8 +33,9 @@ class Speed:
 
         self.off_the_line_time = 0.25
 
-        self.front_high_speed_threshold = 800
-        self.front_low_speed_threshold = 500
+        # self.front_high_speed_threshold = 800
+        self.front_high_speed_threshold = 1200
+        self.front_low_speed_threshold = 700
         self.low_speed_factor = 0.15
 
     def stop(self):
@@ -183,7 +186,7 @@ class Speed:
         soft_start_time = 0.5  # seconds of soft start
 
         prev_distance_left = -1
-        prev_distance_front = -1
+        prev_distance_front = 2000
         prev_distance_right = -1
 
         error_count_left = 0

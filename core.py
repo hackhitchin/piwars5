@@ -196,7 +196,7 @@ class Core():
 
         # Test for any suspiciously large distances and return
         # "invalid" distance of -1 in all error states.
-        if distance > 3000:
+        if distance >= 3000 or distance <= 10:
             distance = -1
 
         return distance
