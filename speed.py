@@ -193,7 +193,7 @@ class Speed:
         error_count_front = 0
         error_count_right = 0
 
-        while not self.killed and time_delta < self.time_limit:
+        while not self.killed:
             # Calculate time delta FIRST so we can
             # pass it into the motor speed function.
             current_time = time.time()
@@ -204,6 +204,21 @@ class Speed:
             distance_left = self.core.get_distance(I2C_Lidar.LIDAR_LEFT)
             distance_front = self.core.get_distance(I2C_Lidar.LIDAR_FRONT)
             distance_right = self.core.get_distance(I2C_Lidar.LIDAR_RIGHT)
+
+
+
+
+            # Ignore RIGHT distance sensor values for first x seconds
+            # NOTE: sensors left/right inverted
+            if time_delta < 2:  # Ignore 2 seconds
+                print("Ignoring {}".format(distance_left))
+                course_width = 520  # mm
+                distance_left = course_width - distance_right
+                print("Using {}".format(distance_left))
+
+
+
+
 
             # Sanity checking distances read.
             # If error, use previous good value.
