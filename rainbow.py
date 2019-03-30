@@ -115,9 +115,10 @@ class Rainbow:
         self.captureThread.join()
         self.processor.terminated = True
         self.processor.join()
-        del self.camera
+        self.camera.close()  # Ensure camera is release
+        # del self.camera
         self.camera = None
-        print("Program terminated")
+        print("Challenge terminated")
 
 
 if __name__ == "__main__":

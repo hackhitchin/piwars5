@@ -30,19 +30,22 @@ class StreamProcessor(threading.Thread):
         self.start()
         self.begin = 0
 
+        self.min_distance = 80.0
+        self.back_off_distance = 400
+
         # Auto drive settings
         self.autoMaxPower = 1.0  # Maximum output in automatic mode
-        self.autoMinPower = 0.6  # Minimum output in automatic mode
+        self.autoMinPower = 0.4  # Minimum output in automatic mode
         self.autoMinArea = 100  # Smallest target to move towards
         # full image
         # self.autoMaxArea = 55000  # Largest target to move towards
         # Cropped Image
         self.autoMaxArea = 40000  # Largest target to move towards
         # Target size at which we use the maximum allowed output
-        self.autoFullSpeedArea = 5000
+        self.autoFullSpeedArea = 20000
 
         # Colour order to visit
-        self.challengecolours = ['blue', 'yellow', 'green', 'red']
+        self.challengecolours = ['red', 'blue', 'yellow', 'green']
         self.arenacolours = []  # Order we've detected in the arena, clockwise
         self.colourindex = 0
         self.colour = self.challengecolours[self.colourindex]
@@ -70,6 +73,8 @@ class StreamProcessor(threading.Thread):
                     self.stream.seek(0)
                     self.stream.truncate()
                     self.event.clear()
+
+        print('stream_processor terminated')
 
     # Image processing function
     def ProcessImage(self, image):
@@ -181,7 +186,7 @@ class StreamProcessor(threading.Thread):
             set the motor speed from the ball position """
 
         # Tuning constants
-        backoff = -0.4  # how fast to back out of the corner
+        backoff = -0.6  # how fast to back out of the corner
         seek = 1.0  # how fast to turn when we can't see a ball
         # how fast we may turn a wheel backwards when a ball is in sight
         hunt_reverse = -0.2
@@ -232,11 +237,13 @@ class StreamProcessor(threading.Thread):
                 self.state = State.HUNTING
                 # time.sleep(2)
             elif self.state == State.HUNTING and self.reversing is False:
+                d_front = self.core_module.get_distance(I2C_Lidar.LIDAR_FRONT)
+
                 if area < self.autoMinArea:
                     print('Too small / far')
                     driveLeft = self.autoMinPower
                     driveRight = self.autoMinPower
-                elif area > self.autoMaxArea:
+                elif d_front <= self.min_distance:
                     print('Close enough')
 
                     # Remember we're looking at the current colour
@@ -245,6 +252,7 @@ class StreamProcessor(threading.Thread):
                     if (self.colourindex >= len(self.challengecolours)):
                         print('Donezo!')
                         self.state = State.FINISHED
+                        self.core_module.set_neutral(braked=True)
                     else:
                         self.colour = self.challengecolours[self.colourindex]
                         print('Now looking for %s ball' % (self.colour))
@@ -259,7 +267,7 @@ class StreamProcessor(threading.Thread):
                     speed *= self.autoMaxPower - self.autoMinPower
                     speed += self.autoMinPower
                     direction = (self.imageCentreX - x) / self.imageCentreX
-                    direction = direction * 5
+                    direction = direction * 3
                     if direction > 0.0:
                         # Turn right
                         print('Turn right for %s' % self.colour)
@@ -294,12 +302,9 @@ class StreamProcessor(threading.Thread):
 
         if self.reversing is True:
             # Drive backwards until front distance > 600mm
-            lidar_dev = self.core_module.lidars[
-                str(I2C_Lidar.LIDAR_FRONT)
-            ]
-            d_front = lidar_dev['device'].get_distance()
+            d_front = self.core_module.get_distance(I2C_Lidar.LIDAR_FRONT)
             print("*** Reversing {} ***".format(d_front))
-            if d_front > 500:
+            if d_front > self.back_off_distance:
                 self.reversing = False
             driveLeft = backoff
             driveRight = backoff
@@ -313,11 +318,13 @@ class StreamProcessor(threading.Thread):
         else:
             asciiTick = "   |"
 
-        if (self.tickInt % 2) == 1:
+        # DriveLeft * DriveRight if one is negative and the other
+        # positigve the result will be negative else positive.
+        if (self.tickInt % 4) == 1 or ((self.tickInt % 2) == 1 and (driveLeft * driveRight < 0)):
             # Blip motors, except if reversing
             if (self.reversing is False):
-                driveLeft = 0
-                driveRight = 0
+                driveLeft = 0.01
+                driveRight = 0.01  # not zero as that turns on brakes
 
         self.tickInt = self.tickInt + 1 if self.tickInt < 3 else 0
         # If we're figuring out what colour we're looking at, cycle through
@@ -334,6 +341,11 @@ class StreamProcessor(threading.Thread):
             self.lookingatcolour,
             self.colour)
         )
-        self.core_module.throttle(driveLeft * 100, driveRight * 100)
+        if self.state == State.FINISHED:
+            self.core_module.throttle(-1, -1)
+            time.sleep(0.1)
+            self.core_module.set_neutral(braked=True)
+        else:
+            self.core_module.throttle(driveLeft * 100, driveRight * 100)
         # if (driveLeft == backoff):
         #    time.sleep(0.8)

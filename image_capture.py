@@ -19,10 +19,12 @@ class ImageCapture(threading.Thread):
             format='bgr',
             use_video_port=True
         )
+
         print('Terminating camera processing...')
         self.processor.terminated = True
         self.processor.join()
-        print('Processing terminated.')
+
+        print('Image_capture terminated')
 
     def stop(self):
         """ Stop this threaded class """
