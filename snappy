@@ -1,0 +1,1 @@
+raspistill -w 320 -h 240 -awb off -awbg `head -n 1 rbgains.txt | cut -c4-7`,`tail -n 1 rbgains.txt | cut -c4-7` -o $1
