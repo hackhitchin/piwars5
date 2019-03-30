@@ -238,7 +238,7 @@ def main():
       # cv2.imshow('image', img)
       # cv2.imshow('mask', mask)
       
-      # cv2.waitKey(0)
+      cv2.waitKey(0)
    
    quit()
    

@@ -94,13 +94,17 @@ class StreamProcessor(threading.Thread):
         #    cv2.waitKey(0)
 
         if self.colour == "red":
-            imrange = cv2.inRange(
+            imrange1 = cv2.inRange(
                 image,
-                # numpy.array((113, 96, 64)),
-                # numpy.array((125, 255, 255))
-                numpy.array((0, 100, 50)),
+                numpy.array((160, 60, 40)),
+                numpy.array((180, 255, 255))
+            )
+            imrange2 = cv2.inRange(
+                image,
+                numpy.array((0, 60, 40)),
                 numpy.array((10, 255, 255))
             )
+            imrange = cv2.bitwise_xor(imrange1, imrange2)
         elif self.colour == 'yellow':
             imrange = cv2.inRange(
                 image,
@@ -227,7 +231,7 @@ class StreamProcessor(threading.Thread):
                 self.colour = self.challengecolours[0]
                 self.state = State.HUNTING
                 # time.sleep(2)
-            elif self.state == State.HUNTING and self.reversing == False:
+            elif self.state == State.HUNTING and self.reversing is False:
                 if area < self.autoMinArea:
                     print('Too small / far')
                     driveLeft = self.autoMinPower
@@ -270,15 +274,7 @@ class StreamProcessor(threading.Thread):
                         driveRight = speed
                         if driveLeft < hunt_reverse:
                             driveLeft = hunt_reverse
-            elif self.state == State.HUNTING and self.reversing == True:
-                # Drive backwards until front distance > 600mm
-                lidar_dev = self.core.lidars[
-                    str(I2C_Lidar.LIDAR_FRONT)
-                ]
-                d_front = lidar_dev['device'].get_distance()
-                if d_front > 600:
-                    self.reversing = False                
-        else:
+        elif self.reversing is False:
             # Figure out which direction to seek from arenacolours
             if (self.state == State.HUNTING and
                 (self.arenacolours.index(self.colour) == self.arenacolours.index(self.lookingatcolour) - 1 or
@@ -296,6 +292,18 @@ class StreamProcessor(threading.Thread):
                 driveLeft = seek
                 driveRight = 0 - seek
 
+        if self.reversing is True:
+            # Drive backwards until front distance > 600mm
+            lidar_dev = self.core_module.lidars[
+                str(I2C_Lidar.LIDAR_FRONT)
+            ]
+            d_front = lidar_dev['device'].get_distance()
+            print("*** Reversing {} ***".format(d_front))
+            if d_front > 500:
+                self.reversing = False
+            driveLeft = backoff
+            driveRight = backoff
+
         if self.tickInt == 0:
             asciiTick = "|   "
         elif self.tickInt == 1:
@@ -305,9 +313,9 @@ class StreamProcessor(threading.Thread):
         else:
             asciiTick = "   |"
 
-        if asciiTick % 2 == 1:
+        if (self.tickInt % 2) == 1:
             # Blip motors, except if reversing
-            if (self.reversing == False):
+            if (self.reversing is False):
                 driveLeft = 0
                 driveRight = 0
 
@@ -327,5 +335,5 @@ class StreamProcessor(threading.Thread):
             self.colour)
         )
         self.core_module.throttle(driveLeft * 100, driveRight * 100)
-        if (driveLeft == backoff):
-            time.sleep(0.8)
+        # if (driveLeft == backoff):
+        #    time.sleep(0.8)

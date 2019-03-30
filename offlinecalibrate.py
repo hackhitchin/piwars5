@@ -7,12 +7,12 @@ from picamera.array import PiRGBArray
 import sys
 
 lower_bounds = [
-    np.array([160, 100, 50]),
+    np.array([160, 60, 40]),
     np.array([20, 150, 50]),
     np.array([50, 100, 50]),
     np.array([85, 120, 50])]
 upper_bounds = [
-    np.array([180, 255, 255]),
+    np.array([20, 255, 255]),
     np.array([40, 255, 255]),
     np.array([80, 255, 255]),
     np.array([135, 255, 255])]
@@ -91,7 +91,22 @@ def colourmask(img, index):
     print(lower_bound)
     print(upper_bound)
 
-    mask = cv2.inRange(hsv, lower_bound, upper_bound)
+    if lower_bound[0] <= upper_bound[0]:
+        mask = cv2.inRange(hsv, lower_bound, upper_bound)
+    else:
+        # Spanning 0 -> 180 gap
+        lower_gap = lower_bound.copy()
+        lower_gap[0] = 180
+        lower_gap[1] = upper_bound[1]
+        lower_gap[2] = upper_bound[2]
+        upper_gap = upper_bound.copy()
+        upper_gap[0] = 0
+        upper_gap[1] = lower_bound[1]
+        upper_gap[2] = lower_bound[2]
+        mask1 = cv2.inRange(hsv, lower_bound, lower_gap)
+        mask2 = cv2.inRange(hsv, upper_gap, upper_bound)
+        mask = cv2.bitwise_xor(mask1, mask2)
+
     res = cv2.bitwise_and(img, img, mask=mask)
 
     return (mask, res)
@@ -262,7 +277,7 @@ def main():
         # cv2.imshow('image', img)
         # cv2.imshow('mask', mask)
 
-        # cv2.waitKey(0)
+        cv2.waitKey(0)
 
     quit()
 

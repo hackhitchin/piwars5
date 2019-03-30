@@ -5,11 +5,11 @@ import threading
 # Image capture thread
 class ImageCapture(threading.Thread):
     def __init__(self, camera, processor):
+        self.running = False
+        self.processor = processor
+        self.camera = camera
         super(ImageCapture, self).__init__()
         self.start()
-        self.camera = camera
-        self.processor = processor
-        self.running = False
 
     def run(self):
         print('Start the stream using the video port')
