@@ -123,8 +123,8 @@ class StreamProcessor(threading.Thread):
                 image,
                 # numpy.array((50, 96, 64)),
                 # numpy.array((85, 255, 255))
-                numpy.array((30, 50, 180)),
-                numpy.array((60, 255, 255))
+                numpy.array((35, 70, 210)),
+                numpy.array((55, 255, 255))
             )
         elif self.colour == 'blue':
             imrange = cv2.inRange(

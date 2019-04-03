@@ -174,9 +174,9 @@ class WallFollower:
 
             # Which wall are we following?
             if self.follow_left:
-                side_prox = d_left  # 0:Left, 2: right
+                side_prox = d_right  # 0:Left, 2: right
             else:
-                side_prox = d_right
+                side_prox = d_left
 
             # Keep X times more distance from the
             # bot's front than from the side

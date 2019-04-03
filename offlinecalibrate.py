@@ -7,23 +7,23 @@ from picamera.array import PiRGBArray
 import sys
 
 lower_bounds = [
-    np.array([160, 60, 40]),
-    np.array([20, 150, 50]),
-    np.array([50, 100, 50]),
-    np.array([85, 120, 50])]
+    np.array([160, 160, 200]),
+    np.array([20, 150, 200]),
+    np.array([35, 80, 200]),
+    np.array([85, 180, 200])]
 upper_bounds = [
-    np.array([20, 255, 255]),
-    np.array([40, 255, 255]),
-    np.array([80, 255, 255]),
-    np.array([135, 255, 255])]
+    np.array([10, 255, 255]),
+    np.array([35, 255, 255]),
+    np.array([55, 255, 255]),
+    np.array([115, 255, 255])]
 colourindex = 0
 
 
 def showimage(img, title="CV image"):
     # Boilerplate image show in window
-    cv2.imshow('image', img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow('image', img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
 
 def overlay(img1, img2, pos):
@@ -136,9 +136,9 @@ def main():
     print(" p: Print current bounds")
     print(" x: Exit")
 
-    picam = picamera.PiCamera()
-    picam.resolution = (300, 240)
-    picam.awb_mode = 'off'
+    # picam = picamera.PiCamera()
+    # picam.resolution = (300, 240)
+    # picam.awb_mode = 'off'
 
     # picam.awb_gains = (1.2, 2.4)
     with open("rbgains.txt") as f:
@@ -146,12 +146,12 @@ def main():
     content = [x.strip() for x in content]
     redgain = float(content[0][2:])
     bluegain = float(content[1][2:])
-    picam.awb_gains = (redgain, bluegain)
+    # picam.awb_gains = (redgain, bluegain)
     time.sleep(1)
-    print("speed %f" % (picam.shutter_speed))
+    # print("speed %f" % (picam.shutter_speed))
     # picam.exposure_mode = 'off'
-    picam.exposure_compensation = 0
-    picam.exposure_mode = 'off'
+    # picam.exposure_compensation = 0
+    # picam.exposure_mode = 'off'
     time.sleep(1)
 
     while(True):
@@ -193,8 +193,8 @@ def main():
         elif (cmd == "m"):
             showme = "masked"
 
-        captureArray = PiRGBArray(picam)
-        arraycapture(picam, captureArray)
+        # captureArray = PiRGBArray(picam)
+        # arraycapture(picam, captureArray)
 
         # img = cv2.imread("blue_ball.JPG", -1)
         # img = cv2.imread("hackspace4.jpg", -1)
